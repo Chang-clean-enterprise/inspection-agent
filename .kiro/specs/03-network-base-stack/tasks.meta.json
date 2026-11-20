@@ -1,0 +1,462 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Create `infra/network.yaml` with parameters, mappings, and conditions": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926063
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157930653
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157971799
+      }
+    ],
+    "1.2 Add the VPC, private subnets, route tables, and associations": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926096
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157973785
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157999779
+      }
+    ],
+    "1.3 Manual verification: foundation": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926132
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158001721
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158033707
+      }
+    ],
+    "2.1 Add the internet gateway, public subnets, NAT gateways, and routes": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926158
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158035663
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158066350
+      }
+    ],
+    "2.2 Manual verification: NAT egress template": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926183
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158068310
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158096251
+      }
+    ],
+    "3.1 Add the security groups and rules": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926207
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158098409
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158129263
+      }
+    ],
+    "3.2 Manual verification: security group template": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926228
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158131328
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158156898
+      }
+    ],
+    "4.1 Add the interface and gateway endpoints with policies": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926252
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158158862
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158207747
+      }
+    ],
+    "4.2 Manual verification: endpoint template": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926277
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158209750
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158249259
+      }
+    ],
+    "5.1 Add the flow log group, role, and flow log": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926301
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158251311
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158281951
+      }
+    ],
+    "5.2 Manual verification: flow log template": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926327
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158284018
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158313669
+      }
+    ],
+    "6.1 Add the SSM parameters and template outputs": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926361
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158315727
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158358093
+      }
+    ],
+    "6.2 Manual verification: complete template": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926386
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158360354
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158405451
+      }
+    ],
+    "7. Checkpoint - Confirm template checks": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926410
+      },
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158458776
+      },
+      {
+        "executionId": "351be409-bb34-453a-bdd5-62860d5f87e8",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158652511
+      }
+    ],
+    "8.1 V2: deploy defaults and read the published parameters": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926435
+      },
+      {
+        "executionId": "351be409-bb34-453a-bdd5-62860d5f87e8",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158656533
+      },
+      {
+        "executionId": "97f265e5-1f84-421c-bafe-aaa0ba073524",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159006844
+      }
+    ],
+    "8.2 V3: NAT count with `UseNatGateway=false`": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926460
+      },
+      {
+        "executionId": "0bfc81a8-b103-4561-a7cc-b7d159192cbe",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159181713
+      },
+      {
+        "executionId": "0bfc81a8-b103-4561-a7cc-b7d159192cbe",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159218698
+      }
+    ],
+    "8.3 V4: database security group has no open ingress": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926484
+      },
+      {
+        "executionId": "0bfc81a8-b103-4561-a7cc-b7d159192cbe",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159219161
+      },
+      {
+        "executionId": "0bfc81a8-b103-4561-a7cc-b7d159192cbe",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159252048
+      }
+    ],
+    "8.4 V5: both options off": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926510
+      },
+      {
+        "executionId": "0bfc81a8-b103-4561-a7cc-b7d159192cbe",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159255445
+      },
+      {
+        "executionId": "0bfc81a8-b103-4561-a7cc-b7d159192cbe",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159294094
+      }
+    ],
+    "8.5 V6: endpoints on": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926535
+      },
+      {
+        "executionId": "dad6e511-e6ef-45e8-b66d-180e4cef7b6e",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159407627
+      },
+      {
+        "executionId": "dad6e511-e6ef-45e8-b66d-180e4cef7b6e",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159444649
+      }
+    ],
+    "8.6 V7: flow logs on and off": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926562
+      },
+      {
+        "executionId": "a5938522-0663-438e-be15-1897d3673229",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159676319
+      },
+      {
+        "executionId": "1f9e8194-bb05-4b3c-a5ff-747c5bfb4287",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159888864
+      }
+    ],
+    "8.7 V8: invalid parameter values are rejected": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926586
+      },
+      {
+        "executionId": "9b1eabdc-e313-4558-bc77-d0fd0cc8cef7",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159949518
+      },
+      {
+        "executionId": "9b1eabdc-e313-4558-bc77-d0fd0cc8cef7",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795159974340
+      }
+    ],
+    "8.8 V9: tags on every taggable resource": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926615
+      },
+      {
+        "executionId": "ed3adec0-e612-4f53-be21-19e8072978d8",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795160185736
+      },
+      {
+        "executionId": "ed3adec0-e612-4f53-be21-19e8072978d8",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795160236364
+      }
+    ],
+    "8.9 V10: teardown": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926640
+      },
+      {
+        "executionId": "b5fdbbf0-49bd-452c-98c2-bfa4d24ead28",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795160459282
+      },
+      {
+        "executionId": "b5fdbbf0-49bd-452c-98c2-bfa4d24ead28",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795160492183
+      }
+    ],
+    "9. Final checkpoint - Confirm the stack is verified": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795157926667
+      },
+      {
+        "executionId": "b5fdbbf0-49bd-452c-98c2-bfa4d24ead28",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795160494421
+      },
+      {
+        "executionId": "b5fdbbf0-49bd-452c-98c2-bfa4d24ead28",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795160534434
+      }
+    ],
+    "1. Template foundation, VPC, and private subnets": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158033740
+      }
+    ],
+    "2. Optional NAT egress": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158096283
+      }
+    ],
+    "3. Security groups": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158156934
+      }
+    ],
+    "4. Optional VPC endpoints": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158249291
+      }
+    ],
+    "5. Optional flow logs": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158313710
+      }
+    ],
+    "6. Published identifiers and outputs": [
+      {
+        "executionId": "c34fd41e-54c3-480b-adb4-f4118761c715",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795158405491
+      }
+    ],
+    "8. Manual verification on a deployed stack": [
+      {
+        "executionId": "b5fdbbf0-49bd-452c-98c2-bfa4d24ead28",
+        "chatSessionId": "sess_bc040eb2-4751-4bb2-80e0-90a0260310fe",
+        "timestamp": 1795160492214
+      }
+    ]
+  }
+}
