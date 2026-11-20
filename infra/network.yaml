@@ -1,0 +1,974 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: inspection-agent network stack. Private VPC, security groups, and optional NAT, VPC endpoints, and flow logs.
+
+Parameters:
+  Env:
+    Type: String
+    Description: Deployment environment name. Part of every stack name and SSM parameter path.
+    Default: demo
+    AllowedPattern: ^[a-z][a-z0-9]{0,9}$
+  UseNatGateway:
+    Type: String
+    Description: Create public subnets, an internet gateway, and NAT gateways. A runtime needs this or UseVpcEndpoints to be true.
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+  UseVpcEndpoints:
+    Type: String
+    Description: Create VPC endpoints for the services the runtime reaches. A runtime needs this or UseNatGateway to be true.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  AzCount:
+    Type: String
+    Description: Number of Availability Zones used. Each AZ gets one private subnet, and one public subnet and NAT gateway when NAT is on.
+    Default: "2"
+    AllowedValues:
+      - "2"
+      - "3"
+  VpcCidr:
+    Type: String
+    Description: IPv4 CIDR block of the VPC. The prefix length must be between /16 and /24.
+    Default: 10.20.0.0/16
+    AllowedPattern: ^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(1[6-9]|2[0-4])$
+  PrivateSubnet1Cidr:
+    Type: String
+    Description: IPv4 CIDR of private subnet 1. Must lie inside VpcCidr and not overlap any other subnet CIDR.
+    Default: 10.20.0.0/24
+    AllowedPattern: ^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(1[6-9]|2[0-8])$
+  PrivateSubnet2Cidr:
+    Type: String
+    Description: IPv4 CIDR of private subnet 2. Must lie inside VpcCidr and not overlap any other subnet CIDR.
+    Default: 10.20.1.0/24
+    AllowedPattern: ^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(1[6-9]|2[0-8])$
+  PrivateSubnet3Cidr:
+    Type: String
+    Description: IPv4 CIDR of private subnet 3, used only when AzCount is 3. Must lie inside VpcCidr and not overlap another subnet.
+    Default: 10.20.2.0/24
+    AllowedPattern: ^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(1[6-9]|2[0-8])$
+  PublicSubnet1Cidr:
+    Type: String
+    Description: IPv4 CIDR of public subnet 1, used only when UseNatGateway is true. Must lie inside VpcCidr and not overlap another subnet.
+    Default: 10.20.100.0/24
+    AllowedPattern: ^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(1[6-9]|2[0-8])$
+  PublicSubnet2Cidr:
+    Type: String
+    Description: IPv4 CIDR of public subnet 2, used only when UseNatGateway is true. Must lie inside VpcCidr and not overlap another subnet.
+    Default: 10.20.101.0/24
+    AllowedPattern: ^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(1[6-9]|2[0-8])$
+  PublicSubnet3Cidr:
+    Type: String
+    Description: IPv4 CIDR of public subnet 3, used only when NAT is on and AzCount is 3. Must lie inside VpcCidr, no overlap.
+    Default: 10.20.102.0/24
+    AllowedPattern: ^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])/(1[6-9]|2[0-8])$
+  S3PrefixListId:
+    Type: String
+    Description: ID of the AWS-managed Amazon S3 prefix list of the Region. Used only when UseVpcEndpoints is true.
+    Default: pl-68a54001
+    AllowedPattern: ^pl-[0-9a-f]{8,17}$
+  EnableFlowLogs:
+    Type: String
+    Description: Create VPC flow logs delivered to a CloudWatch Logs log group.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  FlowLogRetentionDays:
+    Type: Number
+    Description: Retention in days of the flow log group. Used only when EnableFlowLogs is true.
+    Default: 7
+    AllowedValues:
+      - 1
+      - 3
+      - 5
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+
+Mappings:
+  # AZ IDs that AgentCore Runtime supports in VPC mode in the deployment Region.
+  AzIds:
+    First:
+      Id: usw2-az1
+    Second:
+      Id: usw2-az2
+    Third:
+      Id: usw2-az3
+
+Conditions:
+  UseNat: !Equals [!Ref UseNatGateway, "true"]
+  UseEndpoints: !Equals [!Ref UseVpcEndpoints, "true"]
+  HasAz3: !Equals [!Ref AzCount, "3"]
+  NatAz3: !And
+    - !Condition UseNat
+    - !Condition HasAz3
+  FlowLogsOn: !Equals [!Ref EnableFlowLogs, "true"]
+  NoEgressPath: !And
+    - !Not [!Condition UseNat]
+    - !Not [!Condition UseEndpoints]
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-vpc
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PrivateSubnet1Cidr
+      AvailabilityZoneId: !FindInMap [AzIds, First, Id]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-private-1
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      AvailabilityZoneId: !FindInMap [AzIds, Second, Id]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-private-2
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Condition: HasAz3
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PrivateSubnet3Cidr
+      AvailabilityZoneId: !FindInMap [AzIds, Third, Id]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-private-3
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-private-rt-1
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-private-rt-2
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PrivateRouteTable3:
+    Type: AWS::EC2::RouteTable
+    Condition: HasAz3
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-private-rt-3
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable1
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable2
+
+  PrivateSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: HasAz3
+    Properties:
+      SubnetId: !Ref PrivateSubnet3
+      RouteTableId: !Ref PrivateRouteTable3
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Condition: UseNat
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-igw
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: UseNat
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Condition: UseNat
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PublicSubnet1Cidr
+      AvailabilityZoneId: !FindInMap [AzIds, First, Id]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-public-1
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Condition: UseNat
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PublicSubnet2Cidr
+      AvailabilityZoneId: !FindInMap [AzIds, Second, Id]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-public-2
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Condition: NatAz3
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: !Ref PublicSubnet3Cidr
+      AvailabilityZoneId: !FindInMap [AzIds, Third, Id]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-public-3
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Condition: UseNat
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-public-rt
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    Condition: UseNat
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: UseNat
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: UseNat
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: NatAz3
+    Properties:
+      SubnetId: !Ref PublicSubnet3
+      RouteTableId: !Ref PublicRouteTable
+
+  NatEip1:
+    Type: AWS::EC2::EIP
+    Condition: UseNat
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-nat-eip-1
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  NatEip2:
+    Type: AWS::EC2::EIP
+    Condition: UseNat
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-nat-eip-2
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  NatEip3:
+    Type: AWS::EC2::EIP
+    Condition: NatAz3
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-nat-eip-3
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Condition: UseNat
+    Properties:
+      AllocationId: !GetAtt NatEip1.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-nat-1
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Condition: UseNat
+    Properties:
+      AllocationId: !GetAtt NatEip2.AllocationId
+      SubnetId: !Ref PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-nat-2
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  NatGateway3:
+    Type: AWS::EC2::NatGateway
+    Condition: NatAz3
+    Properties:
+      AllocationId: !GetAtt NatEip3.AllocationId
+      SubnetId: !Ref PublicSubnet3
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-nat-3
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  PrivateDefaultRoute1:
+    Type: AWS::EC2::Route
+    Condition: UseNat
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
+  PrivateDefaultRoute2:
+    Type: AWS::EC2::Route
+    Condition: UseNat
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+
+  PrivateDefaultRoute3:
+    Type: AWS::EC2::Route
+    Condition: NatAz3
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway3
+
+  RuntimeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: AgentCore Runtime network interfaces. No ingress.
+      VpcId: !Ref Vpc
+      # Inline egress removes the default allow-all egress rule.
+      SecurityGroupEgress:
+        - !If
+          - UseNat
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+            CidrIp: 0.0.0.0/0
+            Description: HTTPS to the internet through the NAT gateway.
+          - !Ref AWS::NoValue
+        - !If
+          - UseEndpoints
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+            DestinationPrefixListId: !Ref S3PrefixListId
+            Description: HTTPS to Amazon S3 through the gateway endpoint.
+          - !Ref AWS::NoValue
+        - !If
+          - NoEgressPath
+          - IpProtocol: "-1"
+            CidrIp: 127.0.0.1/32
+            Description: Placeholder. Removes the default allow-all egress rule.
+          - !Ref AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-runtime-sg
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS for PostgreSQL instance. Ingress only from the runtime and seed groups.
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 127.0.0.1/32
+          Description: Placeholder. Removes the default allow-all egress rule.
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-database-sg
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  SeedSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Seed and migration mechanism. No ingress.
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 127.0.0.1/32
+          Description: Placeholder. Removes the default allow-all egress rule.
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-seed-sg
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: UseEndpoints
+    Properties:
+      GroupDescription: Interface VPC endpoints. Ingress only from the runtime group.
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 127.0.0.1/32
+          Description: Placeholder. Removes the default allow-all egress rule.
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-endpoint-sg
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  RuntimeToDatabaseEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref RuntimeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
+      Description: PostgreSQL to the database group.
+
+  SeedToDatabaseEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SeedSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
+      Description: PostgreSQL to the database group.
+
+  DatabaseFromRuntimeIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref DatabaseSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref RuntimeSecurityGroup
+      Description: PostgreSQL from the runtime group.
+
+  DatabaseFromSeedIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref DatabaseSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref SeedSecurityGroup
+      Description: PostgreSQL from the seed group.
+
+  EndpointFromRuntimeIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: UseEndpoints
+    Properties:
+      GroupId: !Ref EndpointSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref RuntimeSecurityGroup
+      Description: HTTPS from the runtime group.
+
+  RuntimeToEndpointEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: UseEndpoints
+    Properties:
+      GroupId: !Ref RuntimeSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationSecurityGroupId: !Ref EndpointSecurityGroup
+      Description: HTTPS to the interface endpoints.
+
+  BedrockRuntimeEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: UseEndpoints
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.bedrock-runtime
+      PrivateDnsEnabled: true
+      SubnetIds: !If
+        - HasAz3
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:InvokeModelWithResponseStream
+            Resource:
+              - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/*
+              - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*
+            Condition:
+              StringEquals:
+                aws:PrincipalAccount: !Ref AWS::AccountId
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-bedrock-runtime-endpoint
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  AgentCoreEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: UseEndpoints
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.bedrock-agentcore
+      PrivateDnsEnabled: true
+      SubnetIds: !If
+        - HasAz3
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - bedrock-agentcore:CreateEvent
+              - bedrock-agentcore:GetEvent
+              - bedrock-agentcore:ListEvents
+              - bedrock-agentcore:DeleteEvent
+              - bedrock-agentcore:RetrieveMemoryRecords
+              - bedrock-agentcore:ListMemoryRecords
+              - bedrock-agentcore:GetMemoryRecord
+              - bedrock-agentcore:DeleteMemoryRecord
+              - bedrock-agentcore:ListActors
+              - bedrock-agentcore:ListSessions
+              - bedrock-agentcore:BatchCreateMemoryRecords
+              - bedrock-agentcore:BatchUpdateMemoryRecords
+              - bedrock-agentcore:BatchDeleteMemoryRecords
+            Resource:
+              - !Sub arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:memory/*
+            Condition:
+              StringEquals:
+                aws:PrincipalAccount: !Ref AWS::AccountId
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-agentcore-endpoint
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  SecretsManagerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: UseEndpoints
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.secretsmanager
+      PrivateDnsEnabled: true
+      SubnetIds: !If
+        - HasAz3
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+            Resource:
+              - !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:inspection-agent/${Env}/*
+            Condition:
+              StringEquals:
+                aws:PrincipalAccount: !Ref AWS::AccountId
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-secretsmanager-endpoint
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  LogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: UseEndpoints
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      PrivateDnsEnabled: true
+      SubnetIds: !If
+        - HasAz3
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:DescribeLogStreams
+            Resource:
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/*
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/*:*
+            Condition:
+              StringEquals:
+                aws:PrincipalAccount: !Ref AWS::AccountId
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-logs-endpoint
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  XrayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: UseEndpoints
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.xray
+      PrivateDnsEnabled: true
+      SubnetIds: !If
+        - HasAz3
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]
+        - [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+      SecurityGroupIds:
+        - !Ref EndpointSecurityGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+              - xray:GetSamplingRules
+              - xray:GetSamplingTargets
+              - xray:GetSamplingStatisticSummaries
+            # These X-Ray actions do not support resource-level scoping.
+            Resource: "*"
+            Condition:
+              StringEquals:
+                aws:PrincipalAccount: !Ref AWS::AccountId
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-xray-endpoint
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: UseEndpoints
+    Properties:
+      VpcEndpointType: Gateway
+      VpcId: !Ref Vpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      RouteTableIds: !If
+        - HasAz3
+        - [!Ref PrivateRouteTable1, !Ref PrivateRouteTable2, !Ref PrivateRouteTable3]
+        - [!Ref PrivateRouteTable1, !Ref PrivateRouteTable2]
+      # The AgentCore service principal downloads code artifacts, so this
+      # policy is not limited to principals of the account.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action:
+              - s3:GetObject
+            Resource:
+              - !Sub arn:${AWS::Partition}:s3:::acr-code-*-${AWS::Region}-an
+              - !Sub arn:${AWS::Partition}:s3:::acr-code-*-${AWS::Region}-an/*
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-s3-endpoint
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+  FlowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: FlowLogsOn
+    Properties:
+      LogGroupName: !Sub /inspection-agent/${Env}/network/flow-logs
+      RetentionInDays: !Ref FlowLogRetentionDays
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-flow-logs
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+  FlowLogRole:
+    Type: AWS::IAM::Role
+    Condition: FlowLogsOn
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: vpc-flow-logs.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc-flow-log/*
+      Policies:
+        - PolicyName: !Sub inspection-agent-${Env}-flow-log-delivery
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/inspection-agent/${Env}/network/flow-logs
+                  - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/inspection-agent/${Env}/network/flow-logs:*
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-flow-log-role
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+  VpcFlowLog:
+    Type: AWS::EC2::FlowLog
+    Condition: FlowLogsOn
+    Properties:
+      ResourceType: VPC
+      ResourceId: !Ref Vpc
+      TrafficType: ALL
+      LogDestinationType: cloud-watch-logs
+      LogGroupName: !Ref FlowLogGroup
+      DeliverLogsPermissionArn: !GetAtt FlowLogRole.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub inspection-agent-${Env}-flow-log
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+  VpcIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/network/vpc-id
+      Type: String
+      Value: !Ref Vpc
+      Description: VPC ID published by the network stack.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+  PrivateSubnetIdsParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/network/private-subnet-ids
+      Type: StringList
+      Value: !If
+        - HasAz3
+        - !Join [",", [!Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PrivateSubnet3]]
+        - !Join [",", [!Ref PrivateSubnet1, !Ref PrivateSubnet2]]
+      Description: Private subnet IDs ordered by AZ ID, comma-separated.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+  PublicSubnetIdsParameter:
+    Type: AWS::SSM::Parameter
+    Condition: UseNat
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/network/public-subnet-ids
+      Type: StringList
+      Value: !If
+        - HasAz3
+        - !Join [",", [!Ref PublicSubnet1, !Ref PublicSubnet2, !Ref PublicSubnet3]]
+        - !Join [",", [!Ref PublicSubnet1, !Ref PublicSubnet2]]
+      Description: Public subnet IDs ordered by AZ ID, comma-separated.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+  RuntimeSecurityGroupIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/network/runtime-security-group-id
+      Type: String
+      Value: !Ref RuntimeSecurityGroup
+      Description: Security group ID for the AgentCore Runtime network interfaces.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+  DatabaseSecurityGroupIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/network/database-security-group-id
+      Type: String
+      Value: !Ref DatabaseSecurityGroup
+      Description: Security group ID for the RDS for PostgreSQL instance.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+  SeedSecurityGroupIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/network/seed-security-group-id
+      Type: String
+      Value: !Ref SeedSecurityGroup
+      Description: Security group ID for the seed and migration mechanism.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+Outputs:
+  VpcId:
+    Description: ID of the VPC.
+    Value: !Ref Vpc
+  PrivateSubnetIds:
+    Description: Comma-separated private subnet IDs ordered by AZ ID.
+    Value: !GetAtt PrivateSubnetIdsParameter.Value
+  PublicSubnetIds:
+    Condition: UseNat
+    Description: Comma-separated public subnet IDs ordered by AZ ID.
+    Value: !GetAtt PublicSubnetIdsParameter.Value
+  RuntimeSecurityGroupId:
+    Description: ID of the security group for the AgentCore Runtime.
+    Value: !Ref RuntimeSecurityGroup
+  DatabaseSecurityGroupId:
+    Description: ID of the security group for the database.
+    Value: !Ref DatabaseSecurityGroup
+  SeedSecurityGroupId:
+    Description: ID of the security group for the seed and migration mechanism.
+    Value: !Ref SeedSecurityGroup
