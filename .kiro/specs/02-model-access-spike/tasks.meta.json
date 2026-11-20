@@ -1,0 +1,563 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Record the starting point": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478447
+      },
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151483095
+      },
+      {
+        "executionId": "40f901eb-117d-410f-b62d-2e40f6df744f",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152167736
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152396330
+      }
+    ],
+    "1.2 Manual verification: clean starting state": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478510
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152775240
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152803062
+      }
+    ],
+    "2.1 List inference profiles from us-west-2": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478536
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152518019
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152576911
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154008895
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154015687
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154070698
+      }
+    ],
+    "2.2 Read routing for each profile": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478567
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152580033
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152623414
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154008927
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154073960
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154134716
+      }
+    ],
+    "2.3 Manual verification: profile data": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478593
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152627110
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152679795
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154008954
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154138451
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154212028
+      }
+    ],
+    "3.1 Check subscription state": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478626
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152627677
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152680285
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154009009
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154138948
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154212440
+      }
+    ],
+    "3.2 Make a Verified_Call per Candidate": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478650
+      },
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152806392
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154008845
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154009036
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154216116
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154287820
+      }
+    ],
+    "3.3 Draft prerequisites and IAM tables": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478674
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154291465
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154518888
+      }
+    ],
+    "3.4 Manual verification: access results": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478700
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154292002
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154380062
+      }
+    ],
+    "4. Checkpoint - Confirm access and routing results": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478724
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154522653
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154576581
+      }
+    ],
+    "5.1 Create the harness folder and environment": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478743
+      }
+    ],
+    "5.2 Write `harness.py` in the harness folder": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478767
+      }
+    ],
+    "5.3 Manual verification: smoke Run": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478792
+      }
+    ],
+    "6.1 Measure the Default_Candidate with default Reasoning_Settings (C1)": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478816
+      }
+    ],
+    "6.2 Measure the Global_Candidate (C1)": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478840
+      }
+    ],
+    "6.3 Measure the Fallback_Candidate (C1)": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478860
+      }
+    ],
+    "6.4 Manual verification: latency numbers": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478883
+      }
+    ],
+    "7.1 Confirm how Strands passes reasoning settings": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478908
+      }
+    ],
+    "7.2 Measure C2 on the Default_Candidate, and C3 if time allows": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478935
+      }
+    ],
+    "7.3 Judge answer quality for Demo_Questions 1 to 5 by hand": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478965
+      }
+    ],
+    "7.4 Choose the Reasoning_Settings for the demo": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151478991
+      }
+    ],
+    "8. Checkpoint - Confirm measurement results": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479012
+      }
+    ],
+    "9.1 Read quotas": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479035
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154581703
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154710661
+      }
+    ],
+    "9.2 Compute the Target_Load estimate": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479058
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154716233
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155015265
+      }
+    ],
+    "10.1 Write the residency findings": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479082
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154582102
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154711253
+      }
+    ],
+    "11.1 Create `docs/spikes/model-access.md` with the opening sections": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479103
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155020923
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155130546
+      }
+    ],
+    "11.2 Write the access, profile, and measurement sections": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479127
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155134061
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155264073
+      }
+    ],
+    "11.3 Write the reasoning, quality, quota, and residency sections": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479150
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155267939
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155427224
+      }
+    ],
+    "11.4 Write the condition checklist and sources": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479170
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155431362
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155515030
+      }
+    ],
+    "12.1 Delete the harness folder": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479193
+      },
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155520711
+      },
+      {
+        "executionId": "c30c4b40-acf6-4d12-80f1-db5f288873e4",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155657766
+      }
+    ],
+    "12.2 Manual verification: record and repository hygiene (design Properties 1 to 10)": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479217
+      },
+      {
+        "executionId": "c30c4b40-acf6-4d12-80f1-db5f288873e4",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155661850
+      },
+      {
+        "executionId": "c30c4b40-acf6-4d12-80f1-db5f288873e4",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155723267
+      }
+    ],
+    "13. Final checkpoint - Confirm the spike is complete": [
+      {
+        "executionId": "cfde389c-5574-4da6-bff8-375ca957cebe",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795151479240
+      },
+      {
+        "executionId": "c30c4b40-acf6-4d12-80f1-db5f288873e4",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155727865
+      },
+      {
+        "executionId": "c30c4b40-acf6-4d12-80f1-db5f288873e4",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155763603
+      }
+    ],
+    "1. Preflight and Base_Commit (0:00 to 0:10)": [
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152396380
+      }
+    ],
+    "2. Inference profiles and Destination_Regions (0:10 to 0:25)": [
+      {
+        "executionId": "aabfede8-cdcd-4df9-97cb-1c748473ea8e",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795152679832
+      },
+      {
+        "executionId": "59f6a90c-f745-4d70-b153-20cfba5121d6",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154212067
+      }
+    ],
+    "3. Model access and Verified_Calls (0:25 to 0:50)": [
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154518922
+      }
+    ],
+    "10. Residency statement (2:25 to 2:35)": [
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795154711288
+      }
+    ],
+    "9. Quotas (2:10 to 2:25)": [
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155015313
+      }
+    ],
+    "11. Write the Decision_Record (2:35 to 2:50)": [
+      {
+        "executionId": "cc1c3d6a-43e8-4975-85f0-bd0accfd7757",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155515070
+      }
+    ],
+    "12. Cleanup and hygiene checks (2:50 to 3:00)": [
+      {
+        "executionId": "c30c4b40-acf6-4d12-80f1-db5f288873e4",
+        "chatSessionId": "sess_45f92887-e5c0-4608-b02c-6c316161884d",
+        "timestamp": 1795155723307
+      }
+    ]
+  }
+}
