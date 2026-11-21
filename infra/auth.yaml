@@ -1,0 +1,211 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: inspection-agent auth stack. Cognito user pool, public app client, hosted UI domain, and groups.
+
+Parameters:
+  Env:
+    Type: String
+    Description: Deployment environment name. Part of every stack name and SSM parameter path.
+    Default: demo
+    AllowedPattern: ^[a-z][a-z0-9]{0,9}$
+  CallbackUrl:
+    Type: String
+    Description: OAuth callback URL. Either https:// with a plain DNS host name (no wildcard) or http://localhost. The localhost default is always kept in the client list.
+    Default: http://localhost:3000/callback
+    AllowedPattern: ^(https://[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*(:[0-9]{1,5})?(/[^\s#,*]*)?|http://localhost(:[0-9]{1,5})?(/[^\s#,*]*)?)$
+    MaxLength: 1024
+  LogoutUrl:
+    Type: String
+    Description: Sign-out redirect URL. Either https:// with a plain DNS host name (no wildcard) or http://localhost. The localhost default is always kept in the client list.
+    Default: http://localhost:3000/
+    AllowedPattern: ^(https://[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*(:[0-9]{1,5})?(/[^\s#,*]*)?|http://localhost(:[0-9]{1,5})?(/[^\s#,*]*)?)$
+    MaxLength: 1024
+  JwtValidityMinutes:
+    Type: Number
+    Description: Validity in minutes of the access and ID JWTs issued by the app client. 60 to 1440.
+    Default: 60
+    MinValue: 60
+    MaxValue: 1440
+  RefreshValidityDays:
+    Type: Number
+    Description: Validity in days of the refresh credential issued by the app client. 1 to 3650.
+    Default: 1
+    MinValue: 1
+    MaxValue: 3650
+
+Conditions:
+  # Keep this literal in sync with the default of the CallbackUrl parameter.
+  CallbackIsDefault: !Equals [!Ref CallbackUrl, "http://localhost:3000/callback"]
+  # Keep this literal in sync with the default of the LogoutUrl parameter.
+  LogoutIsDefault: !Equals [!Ref LogoutUrl, "http://localhost:3000/"]
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub inspection-agent-${Env}
+      UserPoolTier: LITE
+      UsernameAttributes:
+        - email
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes:
+        - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      Policies:
+        # Demo setting. Use a stronger password policy for any non-demo use.
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: false
+          RequireUppercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 1
+      # Demo setting. Enable MFA for any non-demo use.
+      MfaConfiguration: "OFF"
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      DeletionProtection: INACTIVE
+      UserPoolTags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub inspection-agent-${Env}-app
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs: !If
+        - CallbackIsDefault
+        - - !Ref CallbackUrl
+        - - http://localhost:3000/callback
+          - !Ref CallbackUrl
+      LogoutURLs: !If
+        - LogoutIsDefault
+        - - !Ref LogoutUrl
+        - - http://localhost:3000/
+          - !Ref LogoutUrl
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: !Ref JwtValidityMinutes
+      IdTokenValidity: !Ref JwtValidityMinutes
+      RefreshTokenValidity: !Ref RefreshValidityDays
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      ManagedLoginVersion: 1
+      Domain: !Sub
+        - inspection-agent-${Env}-${Suffix}
+        - Suffix: !Select [0, !Split ["-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]
+
+  GroupLineA:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: line-a
+      Description: Line A inspector persona. Members can read line A inspection data.
+
+  GroupLineB:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: line-b
+      Description: Line B inspector persona. Members can read line B inspection data.
+
+  GroupSupervisors:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      UserPoolId: !Ref UserPool
+      GroupName: supervisors
+      Description: Quality supervisor persona. Members can read inspection data of both lines.
+
+  UserPoolIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/auth/user-pool-id
+      Type: String
+      Value: !Ref UserPool
+      Description: Cognito user pool ID of the inspection-agent auth stack.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  AppClientIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/auth/app-client-id
+      Type: String
+      Value: !Ref UserPoolClient
+      Description: Cognito app client ID of the public client used by the UI and scripts.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  IssuerUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/auth/issuer-url
+      Type: String
+      Value: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+      Description: Issuer URL of the user pool, the iss value of issued tokens.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  DiscoveryUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/auth/discovery-url
+      Type: String
+      Value: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}/.well-known/openid-configuration
+      Description: OpenID Connect discovery URL of the user pool, used by the AgentCore Runtime JWT authorizer.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  HostedUiDomainParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/auth/hosted-ui-domain
+      Type: String
+      Value: !Sub ${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com
+      Description: Host name of the Cognito hosted UI, with no scheme and no trailing slash.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+Outputs:
+  UserPoolId:
+    Description: Cognito user pool ID. Same value as the SSM parameter user-pool-id.
+    Value: !GetAtt UserPoolIdParameter.Value
+  AppClientId:
+    Description: Cognito app client ID. Same value as the SSM parameter app-client-id.
+    Value: !GetAtt AppClientIdParameter.Value
+  IssuerUrl:
+    Description: Token issuer URL of the user pool. Same value as the SSM parameter issuer-url.
+    Value: !GetAtt IssuerUrlParameter.Value
+  DiscoveryUrl:
+    Description: OpenID Connect discovery URL of the user pool. Same value as the SSM parameter discovery-url.
+    Value: !GetAtt DiscoveryUrlParameter.Value
+  HostedUiDomain:
+    Description: Hosted UI host name without scheme. Same value as the SSM parameter hosted-ui-domain.
+    Value: !GetAtt HostedUiDomainParameter.Value
