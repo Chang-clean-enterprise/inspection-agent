@@ -11,7 +11,7 @@ TEMPLATES := $(wildcard infra/*.yaml infra/*.yml infra/*.json)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help deploy teardown lint
+.PHONY: help deploy teardown seed lint
 
 help:
 	@echo "inspection-agent entry point"
@@ -22,6 +22,7 @@ help:
 	@echo "  make deploy-<component>    Create or update one stack"
 	@echo "  make delete-<component>    Delete one stack"
 	@echo "  make teardown              Delete all 8 stacks in Teardown_Sequence order"
+	@echo "  make seed                  Load the schema and seed data into the database"
 	@echo "  make lint                  Run cfn-lint on infra/ templates, then ruff check"
 	@echo ""
 	@echo "Components: network auth database runtime memory observability ui mcp"
@@ -43,6 +44,9 @@ delete-%:
 
 teardown:
 	$(TEARDOWN)
+
+seed:
+	scripts/seed.sh --env "$(ENV)" --region "$(REGION)"
 
 lint:
 ifneq ($(strip $(TEMPLATES)),)
