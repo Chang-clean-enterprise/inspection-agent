@@ -8,7 +8,7 @@ The 10 Operational_Scripts are:
 
 - deploy
 - package
-- seed
+- seed (`seed.sh`, also `make seed`: packages the schema and seed files, invokes the in-VPC seed function, and prints row counts)
 - create demo users
 - invoke
 - smoke test

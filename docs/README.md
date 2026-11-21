@@ -5,6 +5,8 @@ Project documentation.
 ## Contents
 
 - [cloudformation-conventions.md](cloudformation-conventions.md): rules every CloudFormation template follows
+- [database.md](database.md): RDS database, credential secrets, seed load, and read-only role checks
+- [database.md](database.md): the RDS database, its users and secrets, the seed command, and teardown
 - [kiro-workflow.md](kiro-workflow.md): how GitHub issues, specs, commits, and pull requests map to each other
 
 Data artifacts: [data/STORIES.md](../data/STORIES.md) lists the IDs and expected answers behind the demo questions.

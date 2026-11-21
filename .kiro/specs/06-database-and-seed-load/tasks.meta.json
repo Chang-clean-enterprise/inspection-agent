@@ -1,0 +1,428 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Edit `infra/network.yaml` (additive changes only)": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038058
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240041981
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240112194
+      }
+    ],
+    "1.2 Lint the network template": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038091
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240115776
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240221835
+      }
+    ],
+    "2.1 Edit `data/schema.sql` (resolves O1)": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038123
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240042883
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240111061
+      }
+    ],
+    "3.1 Create `src/inspection_core/seed/handler.py`": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038146
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240043195
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240111857
+      }
+    ],
+    "3.2 Add `src/inspection_core/seed/requirements-seed.txt` and lint": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038172
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240116591
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240221902
+      }
+    ],
+    "4.1 Create `infra/database.yaml`": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038192
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240117073
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240222149
+      }
+    ],
+    "4.2 Run static checks on the stack": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038215
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240226475
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240295714
+      }
+    ],
+    "5.1 Create `scripts/seed.sh`": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038244
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240117943
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240222716
+      }
+    ],
+    "5.2 Add the `seed` target to the `Makefile`": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038267
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240118258
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240223296
+      }
+    ],
+    "6.1 Create `docs/database.md`": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038290
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240226507
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240295776
+      }
+    ],
+    "6.2 Update the small docs": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038313
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240226895
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240295958
+      }
+    ],
+    "7. Checkpoint - Static checks pass": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038335
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240297833
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240322577
+      }
+    ],
+    "8.1 Deploy the network and database stacks (checks O2 and O3)": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038358
+      },
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240324457
+      },
+      {
+        "executionId": "c4b306e1-773c-45d8-ac63-a9e3749bf653",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795241683228
+      }
+    ],
+    "8.2 Run the seed and repeat it": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038381
+      },
+      {
+        "executionId": "c4b306e1-773c-45d8-ac63-a9e3749bf653",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795241685132
+      },
+      {
+        "executionId": "8497f1b6-d3d1-474d-8357-9d41c50433d7",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795242576032
+      }
+    ],
+    "8.3 Verify rollback on a failed load": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038401
+      },
+      {
+        "executionId": "8497f1b6-d3d1-474d-8357-9d41c50433d7",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795242582953
+      },
+      {
+        "executionId": "bb54c33f-8073-4d6f-8ffb-def11820203a",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243445829
+      }
+    ],
+    "8.4 Verify the synthetic-data guard": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038425
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243562434
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243595559
+      }
+    ],
+    "8.5 Verify that a missing index is recreated": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038449
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243598493
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243601367
+      }
+    ],
+    "8.6 Verify that no secret leaks": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038473
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243608316
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243921864
+      }
+    ],
+    "8.7 Verify the VPC endpoints mode": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038492
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243922206
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243925040
+      }
+    ],
+    "8.8 Verify the read-only role from inside the VPC": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038514
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243927928
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243930720
+      }
+    ],
+    "8.9 Verify teardown and redeploy (checks O2 and O4)": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038535
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243933691
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243936948
+      }
+    ],
+    "9. Final checkpoint - Review the record": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240038559
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243940690
+      },
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243943947
+      }
+    ],
+    "2. Make the schema repeatable": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240111094
+      }
+    ],
+    "1. Extend the network stack for the Seed function": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240221867
+      }
+    ],
+    "3. Implement the seed handler": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240221928
+      }
+    ],
+    "5. Create the seed command": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240223334
+      }
+    ],
+    "4. Create the database stack": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240295744
+      }
+    ],
+    "6. Write the documentation": [
+      {
+        "executionId": "576ac17a-e285-4702-9da6-376edca98dff",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795240295984
+      }
+    ],
+    "8. First deploy and manual verification (record each result in the Verification Record)": [
+      {
+        "executionId": "da6c7602-f51b-4b9b-9910-a5b72746dcd2",
+        "chatSessionId": "sess_4b767156-56ea-43cc-86b5-112832d389de",
+        "timestamp": 1795243936975
+      }
+    ]
+  }
+}

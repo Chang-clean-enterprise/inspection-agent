@@ -56,7 +56,7 @@ Apply the schema, then load the CSV files in this order, so that foreign keys re
 \copy measurements FROM 'data/seed/measurements.csv' CSV HEADER
 ```
 
-A loading script is not part of this folder.
+To load the schema and seed files into the RDS database from your laptop, run `scripts/seed.sh` (or `make seed`). See [docs/database.md](../docs/database.md).
 
 ## See also
 

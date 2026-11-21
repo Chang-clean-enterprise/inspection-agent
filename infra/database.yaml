@@ -1,0 +1,345 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: inspection-agent database stack. Private RDS for PostgreSQL, credential secrets, and the seed Lambda function.
+
+Parameters:
+  Env:
+    Type: String
+    Description: Deployment environment name. Part of every stack name and SSM parameter path.
+    Default: demo
+    AllowedPattern: ^[a-z][a-z0-9]{0,9}$
+  InstanceClass:
+    Type: String
+    Description: RDS instance class of the PostgreSQL instance.
+    Default: db.t4g.micro
+    AllowedPattern: ^db\.[a-z0-9]+\.[a-z0-9]+$
+  MultiAz:
+    Type: String
+    Description: Create the instance as a Multi-AZ deployment.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  DeletionProtection:
+    Type: String
+    Description: Enable deletion protection on the instance. Turn it off before deleting the stack.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  PrivateSubnetIds:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Description: SSM parameter name that holds the private subnet IDs published by the network stack. For an Env other than demo, pass /inspection-agent/<env>/network/private-subnet-ids.
+    Default: /inspection-agent/demo/network/private-subnet-ids
+  DbName:
+    Type: String
+    Description: Name of the application database.
+    Default: inspection
+    AllowedValues:
+      - inspection
+
+Resources:
+  MasterSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub inspection-agent/${Env}/database/master
+      Description: Master user credentials of the inspection-agent database. Used only to manage roles.
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username":"dbadmin","dbname":"${DbName}"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludePunctuation: true
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  OwnerSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub inspection-agent/${Env}/database/owner
+      Description: Owner role credentials of the inspection-agent database. Used for DDL and loading.
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username":"inspection_owner","dbname":"${DbName}"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludePunctuation: true
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  AgentRoSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub inspection-agent/${Env}/database/agent-ro
+      Description: Read-only role credentials of the inspection-agent database. Used by the agent tools.
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username":"agent_ro","dbname":"${DbName}"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludePunctuation: true
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnets of the inspection-agent database.
+      SubnetIds: !Ref PrivateSubnetIds
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  DbParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: inspection-agent PostgreSQL 16 parameters. Requires TLS for every connection.
+      Family: postgres16
+      Parameters:
+        rds.force_ssl: "1"
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    # The CloudFormation default for DB instances is Snapshot. Delete leaves no retained resource.
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Engine: postgres
+      EngineVersion: "16.11"
+      DBInstanceClass: !Ref InstanceClass
+      AllocatedStorage: "20"
+      StorageType: gp3
+      StorageEncrypted: true
+      BackupRetentionPeriod: 1
+      PubliclyAccessible: false
+      MultiAZ: !Ref MultiAz
+      DeletionProtection: !Ref DeletionProtection
+      DBName: !Ref DbName
+      Port: "5432"
+      AutoMinorVersionUpgrade: true
+      CopyTagsToSnapshot: true
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      DBParameterGroupName: !Ref DbParameterGroup
+      VPCSecurityGroups:
+        - !Sub "{{resolve:ssm:/inspection-agent/${Env}/network/database-security-group-id}}"
+      MasterUsername: !Sub "{{resolve:secretsmanager:${MasterSecret}:SecretString:username}}"
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${MasterSecret}:SecretString:password}}"
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  MasterSecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref MasterSecret
+      TargetId: !Ref Database
+      TargetType: AWS::RDS::DBInstance
+
+  OwnerSecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref OwnerSecret
+      TargetId: !Ref Database
+      TargetType: AWS::RDS::DBInstance
+
+  AgentRoSecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref AgentRoSecret
+      TargetId: !Ref Database
+      TargetType: AWS::RDS::DBInstance
+
+  SeedLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/inspection-agent-${Env}-seed
+      RetentionInDays: 14
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  SeedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: !Sub inspection-agent-${Env}-seed-secrets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref MasterSecret
+                  - !Ref OwnerSecret
+                  - !Ref AgentRoSecret
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  SeedFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub inspection-agent-${Env}-seed
+      Description: Applies the schema, loads the seed data, and configures the database roles. Invoked by scripts/seed.sh.
+      Runtime: python3.12
+      Architectures:
+        - arm64
+      Handler: index.handler
+      Role: !GetAtt SeedRole.Arn
+      # The load of seven small CSV files takes seconds. 120 s leaves room for a cold start and slow connects.
+      Timeout: 120
+      MemorySize: 256
+      LoggingConfig:
+        LogGroup: !Ref SeedLogGroup
+      VpcConfig:
+        SubnetIds: !Ref PrivateSubnetIds
+        SecurityGroupIds:
+          - !Sub "{{resolve:ssm:/inspection-agent/${Env}/network/seed-security-group-id}}"
+      Environment:
+        Variables:
+          MASTER_SECRET_ARN: !Ref MasterSecret
+          OWNER_SECRET_ARN: !Ref OwnerSecret
+          AGENT_RO_SECRET_ARN: !Ref AgentRoSecret
+          DB_NAME: !Ref DbName
+      # Stub only. scripts/seed.sh uploads the real package.
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {
+                  "ok": False,
+                  "step": "package",
+                  "error": "Seed code not deployed. Run scripts/seed.sh.",
+              }
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  EndpointParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/database/endpoint
+      Type: String
+      Value: !GetAtt Database.Endpoint.Address
+      Description: Endpoint address of the RDS for PostgreSQL instance.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  PortParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/database/port
+      Type: String
+      Value: !GetAtt Database.Endpoint.Port
+      Description: Port of the RDS for PostgreSQL instance.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  DbNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/database/db-name
+      Type: String
+      Value: !Ref DbName
+      Description: Name of the application database.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  MasterSecretArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/database/master-secret-arn
+      Type: String
+      Value: !Ref MasterSecret
+      Description: ARN of the master user credential secret.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  OwnerSecretArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/database/owner-secret-arn
+      Type: String
+      Value: !Ref OwnerSecret
+      Description: ARN of the owner role credential secret.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  AgentRoSecretArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/database/agent-ro-secret-arn
+      Type: String
+      Value: !Ref AgentRoSecret
+      Description: ARN of the read-only role credential secret.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  SeedFunctionNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/database/seed-function-name
+      Type: String
+      Value: !Ref SeedFunction
+      Description: Name of the seed Lambda function.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+Outputs:
+  DatabaseEndpoint:
+    Description: Endpoint address of the RDS for PostgreSQL instance.
+    Value: !GetAtt Database.Endpoint.Address
+  DatabasePort:
+    Description: Port of the RDS for PostgreSQL instance.
+    Value: !GetAtt Database.Endpoint.Port
+  DatabaseName:
+    Description: Name of the application database.
+    Value: !Ref DbName
+  MasterSecretArn:
+    Description: ARN of the master user credential secret.
+    Value: !Ref MasterSecret
+  OwnerSecretArn:
+    Description: ARN of the owner role credential secret.
+    Value: !Ref OwnerSecret
+  AgentRoSecretArn:
+    Description: ARN of the read-only role credential secret.
+    Value: !Ref AgentRoSecret
+  SeedFunctionName:
+    Description: Name of the seed Lambda function. Used by scripts/seed.sh.
+    Value: !Ref SeedFunction
