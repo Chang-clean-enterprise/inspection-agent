@@ -1,0 +1,51 @@
+report_id,lot_id,line_id,part_number,inspector_id,report_date,status,disposition,notes
+IR-2025-0001,LOT-20250507-01,A,DEMO-HOUSING-2002,insp-a-02,2025-05-07,closed,accept,Fixture cleaned before run
+IR-2025-0002,LOT-20250507-01,A,DEMO-HOUSING-2002,insp-a-03,2025-05-08,closed,accept,Sample taken at mid-lot
+IR-2025-0003,LOT-20250507-01,A,DEMO-HOUSING-2002,insp-a-02,2025-05-09,submitted,accept,Operator changed insert at start of shift
+IR-2025-0004,LOT-20250509-01,B,DEMO-SHAFT-3002,insp-b-03,2025-05-09,closed,accept,
+IR-2025-0005,LOT-20250509-01,B,DEMO-SHAFT-3002,insp-b-02,2025-05-10,draft,,
+IR-2025-0006,LOT-20250509-01,B,DEMO-SHAFT-3002,insp-b-03,2025-05-11,closed,accept,"Gauge R&R fine, no issues"
+IR-2025-0007,LOT-20250509-01,B,DEMO-SHAFT-3002,insp-b-03,2025-05-12,submitted,accept,
+IR-2025-0008,LOT-20250512-01,B,DEMO-HOUSING-2001,insp-b-03,2025-05-12,closed,accept,Operator changed insert at start of shift
+IR-2025-0009,LOT-20250512-01,B,DEMO-HOUSING-2001,insp-b-01,2025-05-13,closed,accept,"Gauge R&R fine, no issues"
+IR-2025-0010,LOT-20250512-01,B,DEMO-HOUSING-2001,insp-b-03,2025-05-14,submitted,accept,Parts at room temperature before measuring
+IR-2025-0011,LOT-20250516-01,A,DEMO-SHAFT-3001,insp-a-03,2025-05-16,closed,accept,"Burr on edge, deburred, rechecked OK"
+IR-2025-0012,LOT-20250516-01,A,DEMO-SHAFT-3001,insp-a-03,2025-05-17,closed,accept,
+IR-2025-0013,LOT-20250516-01,A,DEMO-SHAFT-3001,insp-a-01,2025-05-18,closed,accept,"Calibration sticker checked, in date"
+IR-2025-0014,LOT-20250516-01,A,DEMO-SHAFT-3001,insp-a-02,2025-05-19,submitted,accept,
+IR-2025-0015,LOT-20250516-01,A,DEMO-SHAFT-3001,insp-a-01,2025-05-20,closed,accept,
+IR-2025-0016,LOT-20250521-01,B,DEMO-HOUSING-2001,insp-b-02,2025-05-21,closed,accept,"Gauge R&R fine, no issues"
+IR-2025-0017,LOT-20250521-01,B,DEMO-HOUSING-2001,insp-b-01,2025-05-22,closed,accept,"Minor tool mark, cosmetic only"
+IR-2025-0018,LOT-20250521-01,B,DEMO-HOUSING-2001,insp-b-01,2025-05-23,submitted,accept,
+IR-2025-0019,LOT-20250526-01,A,DEMO-BRACKET-4001,insp-a-01,2025-05-26,closed,accept,
+IR-2025-0020,LOT-20250526-01,A,DEMO-BRACKET-4001,insp-a-03,2025-05-27,draft,,
+IR-2025-0021,LOT-20250526-01,A,DEMO-BRACKET-4001,insp-a-03,2025-05-28,closed,accept,
+IR-2025-0022,LOT-20250528-01,B,DEMO-BRACKET-4001,insp-b-03,2025-05-28,closed,accept,Operator changed insert at start of shift
+IR-2025-0023,LOT-20250528-01,B,DEMO-BRACKET-4001,insp-b-02,2025-05-29,closed,accept,
+IR-2025-0024,LOT-20250528-01,B,DEMO-BRACKET-4001,insp-b-01,2025-05-30,submitted,,Hole looks off on piece 2. Fixture? Tool wear? Not sure. Will recheck.
+IR-2025-0025,LOT-20250530-01,B,DEMO-HOUSING-2001,insp-b-01,2025-05-30,submitted,accept,
+IR-2025-0026,LOT-20250528-01,B,DEMO-BRACKET-4001,insp-b-01,2025-05-31,closed,accept,Surface finish within spec
+IR-2025-0027,LOT-20250530-01,B,DEMO-HOUSING-2001,insp-b-01,2025-05-31,closed,accept,
+IR-2025-0028,LOT-20250530-01,B,DEMO-HOUSING-2001,insp-b-02,2025-06-01,closed,accept,Fixture cleaned before run
+IR-2025-0029,LOT-20250604-01,A,DEMO-SHAFT-3001,insp-a-01,2025-06-04,closed,accept,Parts at room temperature before measuring
+IR-2025-0030,LOT-20250604-01,A,DEMO-SHAFT-3001,insp-a-03,2025-06-05,closed,accept,Surface finish within spec
+IR-2025-0031,LOT-20250604-01,A,DEMO-SHAFT-3001,insp-a-02,2025-06-06,closed,scrap,"Journal oversize, lot segregated, scrap per MRB."
+IR-2025-0032,LOT-20250604-01,A,DEMO-SHAFT-3001,insp-a-03,2025-06-07,submitted,accept,Coolant level topped up
+IR-2025-0033,LOT-20250604-01,A,DEMO-SHAFT-3001,insp-a-01,2025-06-08,closed,accept,Coolant level topped up
+IR-2025-0034,LOT-20250608-01,B,DEMO-HOUSING-2001,insp-b-02,2025-06-08,closed,accept,"Calibration sticker checked, in date"
+IR-2025-0035,LOT-20250608-01,B,DEMO-HOUSING-2001,insp-b-01,2025-06-09,closed,accept,
+IR-2025-0036,LOT-20250608-01,B,DEMO-HOUSING-2001,insp-b-03,2025-06-10,closed,hold,Sample taken at mid-lot
+IR-2025-0037,LOT-20250612-01,B,DEMO-BRACKET-4002,insp-b-02,2025-06-12,closed,accept,Parts at room temperature before measuring
+IR-2025-0038,LOT-20250612-01,B,DEMO-BRACKET-4002,insp-b-02,2025-06-13,submitted,accept,"Gauge R&R fine, no issues"
+IR-2025-0039,LOT-20250612-01,B,DEMO-BRACKET-4002,insp-b-02,2025-06-14,closed,accept,"Burr on edge, deburred, rechecked OK"
+IR-2025-0040,LOT-20250612-01,B,DEMO-BRACKET-4002,insp-b-01,2025-06-15,draft,,"Gauge R&R fine, no issues"
+IR-2025-0041,LOT-20250617-01,B,DEMO-HOUSING-2001,insp-b-03,2025-06-17,closed,hold,
+IR-2025-0042,LOT-20250617-01,B,DEMO-HOUSING-2001,insp-b-01,2025-06-18,submitted,hold,
+IR-2025-0043,LOT-20250617-01,B,DEMO-HOUSING-2001,insp-b-03,2025-06-19,submitted,accept,
+IR-2025-0044,LOT-20250622-01,A,DEMO-SHAFT-3002,insp-a-01,2025-06-22,closed,accept,
+IR-2025-0045,LOT-20250622-01,A,DEMO-SHAFT-3002,insp-a-01,2025-06-23,closed,accept,Surface finish within spec
+IR-2025-0046,LOT-20250622-01,A,DEMO-SHAFT-3002,insp-a-03,2025-06-24,closed,accept,
+IR-2025-0047,LOT-20250625-01,B,DEMO-HOUSING-2002,insp-b-03,2025-06-25,submitted,accept,"Minor tool mark, cosmetic only"
+IR-2025-0048,LOT-20250625-01,B,DEMO-HOUSING-2002,insp-b-01,2025-06-26,closed,accept,
+IR-2025-0049,LOT-20250625-01,B,DEMO-HOUSING-2002,insp-b-03,2025-06-27,closed,accept,
+IR-2025-0050,LOT-20250625-01,B,DEMO-HOUSING-2002,insp-b-03,2025-06-28,draft,,

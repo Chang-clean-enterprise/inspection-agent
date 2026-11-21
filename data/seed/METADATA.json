@@ -1,0 +1,7 @@
+{
+  "end_date": "2025-06-30",
+  "generator_version": "1.0.0",
+  "include_injection_story": false,
+  "seed": 42,
+  "synthetic": true
+}

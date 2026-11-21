@@ -1,0 +1,418 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Create `data/schema.sql` with tables, constraints, indexes, and comments": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464014
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237470007
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237505820
+      }
+    ],
+    "1.2 Manually verify the schema on a local PostgreSQL database": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464080
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237509306
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237588679
+      }
+    ],
+    "2.1 Create the module skeleton, constants, and argument parsing": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464108
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237470520
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237505289
+      }
+    ],
+    "2.2 Manually verify argument handling": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464139
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237509340
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237588743
+      }
+    ],
+    "3.1 Add the catalog and the lot builder": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464163
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237509579
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237588806
+      }
+    ],
+    "3.2 Add the report builder": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464188
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237590564
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237635537
+      }
+    ],
+    "3.3 Manually verify lots and reports with a throwaway Python session": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464218
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237638064
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237703892
+      }
+    ],
+    "4.1 Add measurement generation and `classify`": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464249
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237638153
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237704279
+      }
+    ],
+    "4.2 Add story S1 (drifting `bore_diameter`, line B)": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464276
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237706139
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237737920
+      }
+    ],
+    "4.3 Add stories S2 and S3, and the optional S4": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464301
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237739681
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237788031
+      }
+    ],
+    "4.4 Add `check_dataset` runtime guards": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464322
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237789931
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237816816
+      }
+    ],
+    "4.5 Manually verify stories in a throwaway Python session": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464345
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237818808
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237856512
+      }
+    ],
+    "5. Checkpoint - Review the builder with the user": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464365
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237858823
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237860897
+      }
+    ],
+    "6.1 Add CSV rendering, metadata, and `main`": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464388
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237861361
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237900141
+      }
+    ],
+    "6.2 Generate the committed seed files": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464410
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237902046
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238196998
+      }
+    ],
+    "6.3 Manually verify determinism, format, and the injection scan": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464431
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238200159
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238287505
+      }
+    ],
+    "7.1 Manually load and query in a local PostgreSQL database": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464455
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238200206
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238288010
+      }
+    ],
+    "8.1 Write `data/STORIES.md`": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464477
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238290129
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238340280
+      }
+    ],
+    "8.2 Update `data/README.md`": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464508
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238342311
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238363816
+      }
+    ],
+    "9.1 Run the final checks": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464529
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238365979
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238394426
+      }
+    ],
+    "10. Final checkpoint - Confirm completion": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237464553
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238396597
+      },
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238398815
+      }
+    ],
+    "1. Write the PostgreSQL schema `data/schema.sql`": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237588707
+      }
+    ],
+    "2. Implement the generator foundation in `data/generate.py`": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237588769
+      }
+    ],
+    "3. Implement the fixed catalog, lot plan, and report plan": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237703924
+      }
+    ],
+    "4. Implement measurements and the planted stories": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795237856544
+      }
+    ],
+    "6. Implement output writing and generate the committed seed files": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238287530
+      }
+    ],
+    "7. Load the seed files and verify the dataset against the schema": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238288039
+      }
+    ],
+    "8. Write the documentation": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238363845
+      }
+    ],
+    "9. Final manual verification and scope check": [
+      {
+        "executionId": "7dd54e97-0a93-4a64-a807-a76d2200697e",
+        "chatSessionId": "sess_58a1635a-bdd5-4268-a04a-68cf22465e79",
+        "timestamp": 1795238394465
+      }
+    ]
+  }
+}
