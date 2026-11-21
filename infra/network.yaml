@@ -554,6 +554,28 @@ Resources:
       DestinationSecurityGroupId: !Ref DatabaseSecurityGroup
       Description: PostgreSQL to the database group.
 
+  SeedToInternetEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: UseNat
+    Properties:
+      GroupId: !Ref SeedSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+      Description: HTTPS to the internet through the NAT gateway.
+
+  SeedToEndpointEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: UseEndpoints
+    Properties:
+      GroupId: !Ref SeedSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationSecurityGroupId: !Ref EndpointSecurityGroup
+      Description: HTTPS to the interface endpoints.
+
   DatabaseFromRuntimeIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -584,6 +606,17 @@ Resources:
       ToPort: 443
       SourceSecurityGroupId: !Ref RuntimeSecurityGroup
       Description: HTTPS from the runtime group.
+
+  EndpointFromSeedIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: UseEndpoints
+    Properties:
+      GroupId: !Ref EndpointSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref SeedSecurityGroup
+      Description: HTTPS from the seed group.
 
   RuntimeToEndpointEgress:
     Type: AWS::EC2::SecurityGroupEgress
@@ -740,6 +773,8 @@ Resources:
             Resource:
               - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/*
               - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/*:*
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/inspection-agent-${Env}-seed
+              - !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/inspection-agent-${Env}-seed:*
             Condition:
               StringEquals:
                 aws:PrincipalAccount: !Ref AWS::AccountId
