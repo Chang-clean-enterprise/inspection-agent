@@ -1,0 +1,212 @@
+# Database
+
+This page describes the inspection-agent database: a private Amazon RDS for PostgreSQL instance, the three database users, their credential secrets, the seed command, and teardown. The stack is `inspection-agent-<env>-database`, created from `infra/database.yaml`. All data is synthetic.
+
+Examples use `<env>` for the environment name (default `demo`) and region `us-west-2`. Passwords and tokens never appear in this repository.
+
+## 1. Architecture
+
+```
+Operator laptop
+  |  aws lambda update-function-code / invoke   (scripts/seed.sh)
+  v
+Seed Lambda (private subnets, Seed security group)
+  |-- 5432, TLS --> RDS for PostgreSQL 16 (Database security group)
+  |-- 443 --------> Secrets Manager (master, owner, agent-ro) and CloudWatch Logs
+                    through the NAT gateway or the VPC interface endpoints
+```
+
+- The instance runs in the private subnets published by the network stack. It is not publicly accessible. The Database security group has no CIDR ingress rule, only rules from the runtime and seed security groups.
+- Storage is encrypted, gp3, 20 GiB. Backup retention is 1 day. The parameter group sets `rds.force_ssl` to 1, so every connection must use TLS.
+- The database is private, so the load runs inside the VPC. The stack creates a Seed Lambda function (`inspection-agent-<env>-seed`, Python 3.12, arm64, 120 s timeout, 256 MB). The template ships a stub. `scripts/seed.sh` uploads the real package. The function has no trigger and no schedule, and runs only when an operator invokes it.
+- The function ignores its invocation payload. It accepts no SQL, credential, or file path.
+- Source: `src/inspection_core/seed/handler.py`. The package holds the handler, `data/schema.sql`, and `data/seed/`.
+
+### Order and dependency on the network stack
+
+The Seed function needs the network change that adds the Seed security group rules (HTTPS egress to the NAT gateway or the endpoints, HTTPS ingress on the endpoint group, and the seed log group in the Logs endpoint policy). Deploy in this order:
+
+1. Network stack (`make deploy-network`). Set `UseNatGateway=true` or `UseVpcEndpoints=true`, or the function cannot reach Secrets Manager.
+2. Database stack (`make deploy-database`).
+3. Seed (`make seed`).
+
+`make deploy` runs the full Deploy_Sequence, which already places the database third.
+
+## 2. Parameters
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `Env` | `demo` | Environment name. Pattern `^[a-z][a-z0-9]{0,9}$`. |
+| `InstanceClass` | `db.t4g.micro` | RDS instance class. |
+| `MultiAz` | `"false"` | `"true"` creates a Multi-AZ instance. |
+| `DeletionProtection` | `"false"` | `"true"` blocks deletion of the instance and the stack. |
+| `PrivateSubnetIds` | `/inspection-agent/demo/network/private-subnet-ids` | Name of the SSM parameter that holds the private subnet IDs. A typed SSM parameter, so the default points at the `demo` network stack. |
+| `DbName` | `inspection` | Database name. Only `inspection` is allowed. |
+
+`PrivateSubnetIds` needs an override for any `Env` other than `demo`. `scripts/deploy.sh` passes only `Env`, so without an override the stack reads the `demo` subnets. For a non-demo environment, deploy the stack directly:
+
+```bash
+aws cloudformation deploy \
+  --region us-west-2 \
+  --stack-name inspection-agent-<env>-database \
+  --template-file infra/database.yaml \
+  --parameter-overrides Env=<env> \
+      PrivateSubnetIds=/inspection-agent/<env>/network/private-subnet-ids \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --tags Project=inspection-agent Env=<env>
+```
+
+The database security group ID and the seed security group ID are read with dynamic references built from `Env`, so they need no override. If a network SSM parameter does not exist, stack creation fails and the error names the parameter.
+
+The engine version is pinned to `16.11`. `AutoMinorVersionUpgrade` is on.
+
+## 3. Database users
+
+| User | Purpose | Privileges |
+|---|---|---|
+| `dbadmin` (master) | RDS master user. Used only by the seed function to create and configure roles and database-level grants. | RDS master. |
+| `inspection_owner` | Owns the seven tables. Used for DDL and loading. | `LOGIN`, `CONNECT` on the database, `USAGE` and `CREATE` on schema `public`. Not superuser, no `CREATEDB`, no `CREATEROLE`. |
+| `agent_ro` | The only role the agent tools use. | `LOGIN`, `CONNECT`, `USAGE` on `public`, `SELECT` on the seven tables. Nothing else. |
+
+`agent_ro` role settings: connection limit 10, `statement_timeout` 10 s, `default_transaction_read_only` on. `PUBLIC` loses `TEMPORARY` on the database and `CREATE` on `public`, and `agent_ro` has no `CREATE` on `public`.
+
+The missing privileges are the first layer of protection. `default_transaction_read_only` is a second layer, because a session can switch itself to read-write but cannot grant itself `INSERT`.
+
+Tables: `lines`, `parts`, `characteristics`, `inspectors`, `lots`, `inspection_reports`, `measurements`.
+
+## 4. Credential secrets
+
+Passwords are generated by Secrets Manager (32 characters, no punctuation). No password exists in a template, parameter, environment variable, or this repository.
+
+| Secret name | User |
+|---|---|
+| `inspection-agent/<env>/database/master` | `dbadmin` |
+| `inspection-agent/<env>/database/owner` | `inspection_owner` |
+| `inspection-agent/<env>/database/agent-ro` | `agent_ro` |
+
+Each secret holds `username`, `password`, `dbname`, `host`, and `port`. The secrets have no resource policy. The seed function role may call `secretsmanager:GetSecretValue` on these three secrets only.
+
+## 5. Published SSM parameters
+
+All have type `String` and sit under `/inspection-agent/<env>/database/`. No password or secret value is published, and the stack uses no CloudFormation export.
+
+| Key | Value |
+|---|---|
+| `endpoint` | Instance endpoint address |
+| `port` | Instance port |
+| `db-name` | `inspection` |
+| `master-secret-arn` | ARN of the master secret |
+| `owner-secret-arn` | ARN of the owner secret |
+| `agent-ro-secret-arn` | ARN of the agent-ro secret |
+| `seed-function-name` | Name of the seed Lambda function |
+
+## 6. Seed command
+
+```bash
+make seed ENV=<env> REGION=us-west-2
+# or
+scripts/seed.sh --env <env> --region us-west-2
+```
+
+`--env` defaults to `demo` and `--region` to `us-west-2`. An invalid `--env` is rejected before any AWS call. The script needs the AWS CLI, `zip`, and `python3`, and uses your AWS credentials. It asks for no password.
+
+What it does:
+
+1. Reads the function name from `/inspection-agent/<env>/database/seed-function-name`. If the parameter is missing, run `make deploy-database`.
+2. Builds `build/seed/seed.zip` with the handler, `data/schema.sql`, `data/seed/`, and the packages in `requirements-seed.txt` (`psycopg[binary]` and `typing-extensions`, both pinned). `typing-extensions` is listed explicitly because psycopg needs it only on Python below 3.13, and pip evaluates that condition on the build host instead of on `--python-version`, so it can be skipped. The dependency wheels are downloaded for Python 3.12 on arm64 with two platform tags (`manylinux_2_28_aarch64` and `manylinux2014_aarch64`), because current psycopg binary wheels use the newer tag.
+3. Uploads the package and invokes the function.
+4. Prints one line per table and exits 0 only if every count matches:
+
+```
+lines db=2 seed=2 OK
+```
+
+The function runs these steps in order:
+
+| Step | Connects as | Action |
+|---|---|---|
+| `validate-metadata` | none | Stops unless `data/seed/METADATA.json` has `synthetic` set to `true`. |
+| `roles` | master | Creates or updates the two roles, their passwords, role settings, and database and schema grants. |
+| `schema` | owner | Applies `data/schema.sql`. Every statement uses `IF NOT EXISTS`, so existing objects stay unchanged and absent ones are created. |
+| `load` | owner | One transaction: `TRUNCATE` all seven tables, then `COPY` in foreign key order. A failure rolls everything back. |
+| `grants` | owner | `REVOKE ALL`, then `GRANT SELECT` to `agent_ro` on each table. |
+| `count` | owner | Counts rows in the database. The script compares them with the CSV data rows. |
+
+Running the command again gives the same report, because the load replaces all rows. On failure the script prints the step, the table, and the error, and exits 1. Error text for the `roles` step and for Secrets Manager calls holds no message text, so a password cannot leak. A `roles` failure names the failed statement with a fixed label, for example `substep=revoke-schema-create InsufficientPrivilege SQLSTATE 42501`. The master sets only `PASSWORD` on the roles, because on PG16 `rds_superuser` cannot name `SUPERUSER`, `CREATEDB`, or `CREATEROLE` in `ALTER ROLE`. The step also stops if the master does not own the database or if either role has an elevated attribute.
+
+## 7. Teardown
+
+`scripts/teardown.sh` (or `make delete-database`) deletes the stack. The instance has `DeletionPolicy: Delete`, so deletion leaves no final snapshot and no retained resource.
+
+- `DeletionProtection=false` (default): the stack deletes.
+- `DeletionProtection=true`: deletion fails until you set the parameter to `false` and update the stack.
+
+Automated backups of a deleted instance are removed with it.
+
+## 8. Operational notes
+
+- **Stale endpoint group description.** `EndpointSecurityGroup` in the network stack still says "Ingress only from the runtime group", although it now also allows ingress from the Seed group. Changing a security group description forces replacement, so the text was left as is.
+- **Network interfaces after deleting the Lambda.** Deleting a VPC Lambda function leaves its network interfaces for a while. Running `make delete-network` right after the database stack can fail on a security group or subnet. Retry after a few minutes.
+- **TLS mode.** The seed function connects with `sslmode=require`. This encrypts traffic but does not verify the server certificate. `rds.force_ssl=1` rejects unencrypted clients, and the path stays inside the VPC. If the demo moves beyond a private, single-account setup, switch to `verify-full` and ship the RDS CA bundle in the package.
+- **Failure in the `roles` step with a connection error.** The function probably cannot reach Secrets Manager or the database. Check that the network stack has `UseNatGateway=true` or `UseVpcEndpoints=true`, that the network stack was deployed after the Seed rules were added, and that the stack's private subnets are the ones the function uses.
+- **Stub still deployed.** A response with step `package` means the stub is still in place. Run `make seed`.
+- **Repeated deploys.** `make deploy-database` does not overwrite the uploaded package, because CloudFormation re-applies the stub only when the stub text changes. If the function is ever replaced, run `make seed` again.
+
+## 9. Manual verification from inside the VPC
+
+The database is private, so these checks run from inside the VPC, for example from an AWS CloudShell VPC environment in a private subnet that uses the Seed security group. Nothing here is automated, and no script is added for it. The password is read into a shell variable and never printed or recorded in this document.
+
+Steps:
+
+1. Open CloudShell with a VPC environment: private subnet from the network stack, Seed security group.
+2. Read the connection facts and the `agent_ro` password without printing the password:
+
+   ```bash
+   ENV=<env>
+   P=/inspection-agent/$ENV/database
+   DB_HOST=$(aws ssm get-parameter --name $P/endpoint --query Parameter.Value --output text)
+   DB_NAME=$(aws ssm get-parameter --name $P/db-name --query Parameter.Value --output text)
+   SECRET_ARN=$(aws ssm get-parameter --name $P/agent-ro-secret-arn --query Parameter.Value --output text)
+   export PGPASSWORD=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" \
+     --query SecretString --output text | python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])')
+   export PGSSLMODE=require
+   PSQL="psql -h $DB_HOST -U agent_ro -d $DB_NAME"
+   ```
+
+3. Run `SELECT count(*)` on each of the seven tables.
+4. Run each statement below and confirm it fails: `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `CREATE TABLE`, `CREATE TEMPORARY TABLE`.
+5. Run `SHOW statement_timeout;` and `SHOW default_transaction_read_only;`.
+6. From the operator laptop, outside the VPC, try `psql` against the endpoint. The connection must fail, which shows the instance is not reachable from the internet.
+7. Record the date and the observed result of each step in the table below. Do not record a password or token.
+
+### Verification results
+
+Date of check: 2026-05
+
+| Step | Statement or action | Observed result |
+|---|---|---|
+| 3 | `SELECT count(*)` on `lines` | 2 |
+| 3 | `SELECT count(*)` on `parts` | 6 |
+| 3 | `SELECT count(*)` on `characteristics` | 18 |
+| 3 | `SELECT count(*)` on `inspectors` | 6 |
+| 3 | `SELECT count(*)` on `lots` | 14 |
+| 3 | `SELECT count(*)` on `inspection_reports` | 50 |
+| 3 | `SELECT count(*)` on `measurements` | 150 |
+| 4 | `INSERT` | Rejected: cannot execute INSERT in a read-only transaction |
+| 4 | `UPDATE` | Rejected: cannot execute UPDATE in a read-only transaction |
+| 4 | `DELETE` | Rejected: cannot execute DELETE in a read-only transaction |
+| 4 | `TRUNCATE` | Rejected: cannot execute TRUNCATE TABLE in a read-only transaction |
+| 4 | `CREATE TABLE` | Rejected: cannot execute CREATE TABLE in a read-only transaction |
+| 4 | `CREATE TEMPORARY TABLE` | Rejected: cannot execute CREATE TABLE in a read-only transaction |
+| 5 | `SHOW statement_timeout` | 10s |
+| 5 | `SHOW default_transaction_read_only` | on |
+| 6 | Connection from the laptop | Timed out |
+
+Note: the privilege-layer check was not run. It repeats the step-4 statements with the read-only default switched off, so a rejection would come from missing privileges (SQLSTATE 42501) and not only from the read-only default. For a future run, define the override and run each statement:
+
+```bash
+RW="env PGOPTIONS=-cdefault_transaction_read_only=off $PSQL"
+$RW -c "<statement>"
+```
+
+First confirm the override took effect: `$RW -c "SHOW default_transaction_read_only;"` must print `off`.

@@ -3,26 +3,27 @@
 -- All data in this schema is synthetic. It contains no real company,
 -- customer, personal, or part-number data.
 --
--- Apply to an empty database inside a single transaction:
+-- Safe to apply repeatedly. Every table and index uses IF NOT EXISTS, so
+-- existing objects are left unchanged. The file runs in a single transaction:
 --   psql -v ON_ERROR_STOP=1 -f data/schema.sql
 
 BEGIN;
 
-CREATE TABLE lines (
+CREATE TABLE IF NOT EXISTS lines (
     line_id TEXT NOT NULL,
     name    TEXT NOT NULL,
     CONSTRAINT pk_lines PRIMARY KEY (line_id),
     CONSTRAINT ck_lines_line_id CHECK (line_id IN ('A', 'B'))
 );
 
-CREATE TABLE parts (
+CREATE TABLE IF NOT EXISTS parts (
     part_number TEXT NOT NULL,
     family      TEXT NOT NULL,
     description TEXT NOT NULL,
     CONSTRAINT pk_parts PRIMARY KEY (part_number)
 );
 
-CREATE TABLE characteristics (
+CREATE TABLE IF NOT EXISTS characteristics (
     characteristic_id TEXT    NOT NULL,
     part_number       TEXT    NOT NULL,
     name              TEXT    NOT NULL,
@@ -38,7 +39,7 @@ CREATE TABLE characteristics (
         CHECK (lower_limit <= nominal AND nominal <= upper_limit)
 );
 
-CREATE TABLE inspectors (
+CREATE TABLE IF NOT EXISTS inspectors (
     inspector_id TEXT NOT NULL,
     line_id      TEXT NOT NULL,
     full_name    TEXT NOT NULL,
@@ -48,7 +49,7 @@ CREATE TABLE inspectors (
     CONSTRAINT uq_inspectors_id_line UNIQUE (inspector_id, line_id)
 );
 
-CREATE TABLE lots (
+CREATE TABLE IF NOT EXISTS lots (
     lot_id      TEXT    NOT NULL,
     part_number TEXT    NOT NULL,
     line_id     TEXT    NOT NULL,
@@ -63,7 +64,7 @@ CREATE TABLE lots (
     CONSTRAINT ck_lots_quantity CHECK (quantity > 0)
 );
 
-CREATE TABLE inspection_reports (
+CREATE TABLE IF NOT EXISTS inspection_reports (
     report_id    TEXT NOT NULL,
     lot_id       TEXT NOT NULL,
     line_id      TEXT NOT NULL,
@@ -96,7 +97,7 @@ CREATE TABLE inspection_reports (
         CHECK (status <> 'draft' OR disposition IS NULL)
 );
 
-CREATE TABLE measurements (
+CREATE TABLE IF NOT EXISTS measurements (
     measurement_id    INTEGER NOT NULL,
     report_id         TEXT    NOT NULL,
     characteristic_id TEXT    NOT NULL,
@@ -111,12 +112,12 @@ CREATE TABLE measurements (
     CONSTRAINT ck_measurements_result CHECK (result IN ('pass', 'fail'))
 );
 
-CREATE INDEX ix_reports_line_date ON inspection_reports (line_id, report_date);
-CREATE INDEX ix_reports_part_date ON inspection_reports (part_number, report_date);
-CREATE INDEX ix_reports_lot ON inspection_reports (lot_id);
-CREATE INDEX ix_measurements_characteristic ON measurements (characteristic_id);
-CREATE INDEX ix_measurements_report ON measurements (report_id);
-CREATE INDEX ix_lots_part_produced ON lots (part_number, produced_on);
+CREATE INDEX IF NOT EXISTS ix_reports_line_date ON inspection_reports (line_id, report_date);
+CREATE INDEX IF NOT EXISTS ix_reports_part_date ON inspection_reports (part_number, report_date);
+CREATE INDEX IF NOT EXISTS ix_reports_lot ON inspection_reports (lot_id);
+CREATE INDEX IF NOT EXISTS ix_measurements_characteristic ON measurements (characteristic_id);
+CREATE INDEX IF NOT EXISTS ix_measurements_report ON measurements (report_id);
+CREATE INDEX IF NOT EXISTS ix_lots_part_produced ON lots (part_number, produced_on);
 
 COMMENT ON TABLE lines IS 'Production lines. Synthetic data. Only A and B exist.';
 COMMENT ON TABLE parts IS 'Fictional part catalog grouped by family. Synthetic data.';
