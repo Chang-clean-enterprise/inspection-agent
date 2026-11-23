@@ -203,37 +203,37 @@ Testing policy: this plan creates no test files, suites, fixtures, eval harnesse
       - `docs/README.md`: the link `[inspection-tools.md](inspection-tools.md)` resolves to `docs/inspection-tools.md`, which exists. Observation, not changed (outside this task): `docs/README.md` has two near-duplicate `database.md` entries.
 
 - [ ] 8. Deferred verification against the deployed runtime
-  - [~] 8.1 Persona by tool (design table rows 1 to 13) - Deferred until the runtime (spec 09) is deployed
+  - [ ] 8.1 Persona by tool (design table rows 1 to 13) - Deferred until the runtime (spec 09) is deployed
     - Call each tool as the Line A inspector, the Line B inspector, and the Quality supervisor, using tokens from `docs/auth.md`. Check the S1 trend (row 13: means 25.001, 25.006, 25.012, 25.019, 25.021, out-of-tolerance 0, 0, 0, 1, 2, `rising`, count 4), `IR-2025-0031` with disposition `scrap`, the `DEMO-SHAFT-3001` list of 10 reports, and `IR-2025-0024` with its note unchanged and empty disposition.
     - Fill the Observed and Date cells in the design table and record the summary in the task notes.
     - _Requirements: 13.1, 13.2, 13.3, 14.2, 14.3, 14.4, 14.6, 14.7, 5.5, 8.5_
 
-  - [~] 8.2 Denial and scope (rows 14 to 21) - Deferred until the runtime is deployed
+  - [ ] 8.2 Denial and scope (rows 14 to 21) - Deferred until the runtime is deployed
     - Check the Line B inspector denied on line A for `list_reports`, `get_report`, and `get_lot` (row 14 to 16), the `not_found` comparison (row 17), the identical reason for the Line A inspector on a line B record (row 18), a user with no group (row 19), a trend with a denied line filter (row 20), and that the model-visible schema carries no identity parameter (row 21).
     - Fill the design table and record the summary in the task notes.
     - _Requirements: 13.4, 14.1, 14.5, 3.7, 8.1, 8.7, 9.1, 9.4, 2.5_
 
-  - [~] 8.3 Not found, invalid input, and row cap (rows 22 to 30) - Deferred until the runtime is deployed
+  - [ ] 8.3 Not found, invalid input, and row cap (rows 22 to 30) - Deferred until the runtime is deployed
     - Check unknown part and characteristic (rows 22, 23), invalid dates and `limit` (rows 24 to 26), and the row cap with `limit=500`, `limit=3`, and no limit (rows 27 to 29, covering requirements 10.8, 10.9, 10.10, 10a, 10.11, 10.12). Row 30 (a regenerated seed with more than 50 reports in a scratch checkout) is optional. Record whether it ran.
     - Fill the design table and record the summary in the task notes.
     - _Requirements: 4.6, 7.9, 7.10, 10.8, 10.9, 10.10, 10a, 10.11, 10.12, 13.5_
 
-  - [~] 8.4 SQL injection attempts (rows 31 to 40) - Deferred until the runtime is deployed
+  - [ ] 8.4 SQL injection attempts (rows 31 to 40) - Deferred until the runtime is deployed
     - For each string parameter run `' OR '1'='1`, `'; DROP TABLE inspection_reports; --`, and `100%_x`. After the run, confirm `inspection_reports` still holds 50 rows from a VPC session (`docs/database.md` section 9). Check that the audit line shows each value cut to 200 characters and that no stack trace appears in any result.
     - Fill the design table and record the summary in the task notes.
     - _Requirements: 10.2, 10.7, 10.14, 8.8, 13.6_
 
-  - [~] 8.5 No write possible (rows 41 to 44) - Deferred until the runtime is deployed
+  - [ ] 8.5 No write possible (rows 41 to 44) - Deferred until the runtime is deployed
     - Re-run the grep from task 4.5 (row 41). From the VPC session attempt `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, and `CREATE TABLE` as `agent_ro` and confirm each is rejected (row 42). Check `SHOW transaction_read_only` returns `on` inside `read_only_session` (row 43). Confirm the model sees exactly four tools (row 44).
     - Fill the design table and record the summary in the task notes.
     - _Requirements: 10.3, 10.4, 13.7, 14.8_
 
-  - [~] 8.6 Audit and trace (rows 45 to 50) - Deferred until the runtime is deployed
+  - [ ] 8.6 Audit and trace (rows 45 to 50) - Deferred until the runtime is deployed
     - Run rows 1, 14, 17, and 24 and count the `inspection_core.audit` log lines (exactly one each, statuses `ok`, `forbidden`, `not_found`, `invalid_request`). Check the ten fields and `decision` `null` for row 24. Check the `inspection.*` span attributes in the trace view. Call `get_report` on `IR-2025-0024` as the Line B inspector and confirm no note text in the log line. Check `report_ids` stays at 20 or fewer, or record "not reachable with committed seed". Stop the database or use an unknown `INSPECTION_ENV` and confirm status `error` with a generic reason and one audit line.
     - Fill the design table and record the summary in the task notes.
     - _Requirements: 10.13, 11.1, 11.2, 11.3, 11.4, 11.7, 11.8, 11.10, 13.8, 13.9_
 
-- [~] 9. Final checkpoint - Review recorded verification
+- [ ] 9. Final checkpoint - Review recorded verification
   - Confirm every verification task has its observations recorded in the task notes, the deferred rows are filled in once the runtime is deployed (or listed as still deferred), `ruff` is clean, and the repository contains no test file, suite, fixture, harness, or verification script. Ask the user if questions arise.
 
 ## Notes
