@@ -1,0 +1,5 @@
+psycopg[binary]==3.3.9
+# psycopg needs typing-extensions on Python 3.12 (marker python_version < "3.13").
+typing-extensions==4.16.0
+boto3==1.42.97
+opentelemetry-api==1.41.1
