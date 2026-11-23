@@ -1,0 +1,3 @@
+-r ../inspection_core/requirements.txt
+strands-agents==1.65.0
+bedrock-agentcore==1.27.0
