@@ -70,6 +70,12 @@ def _log_failure(exc: BaseException) -> None:
         return
 
 
+def _set_decision(result: Any, state: CallState) -> None:
+    """Add ``meta.decision`` to a result. ``None`` when not yet computed."""
+    if isinstance(result, dict) and isinstance(result.get("meta"), dict):
+        result["meta"]["decision"] = state.decision
+
+
 def _run(
     tool: str,
     principal: Principal,
@@ -82,13 +88,16 @@ def _run(
     try:
         result = handler(state)
         state.status = str(result.get("status", "error"))
+        _set_decision(result, state)
         return result
     except Exception as exc:  # noqa: BLE001
         _log_failure(exc)
         state.status = "error"
         state.row_count = 0
         state.report_ids = []
-        return results.error(tool)
+        error_result = results.error(tool)
+        _set_decision(error_result, state)
+        return error_result
     finally:
         duration_ms = int((time.perf_counter() - started) * 1000)
         audit.emit(

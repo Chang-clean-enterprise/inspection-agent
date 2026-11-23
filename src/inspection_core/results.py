@@ -126,4 +126,6 @@ def forbidden_no_principal(tool: str) -> dict[str, Any]:
     The adapter returns this when the invocation state holds no principal.
     No query runs.
     """
-    return forbidden(tool, REASON_FORBIDDEN_NO_LINES)
+    result = forbidden(tool, REASON_FORBIDDEN_NO_LINES)
+    result["meta"]["decision"] = "forbidden"
+    return result
