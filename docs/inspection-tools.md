@@ -47,6 +47,7 @@ Every tool returns the same envelope. The current `schema_version` is `1.0`.
 | `reason` | string | When `status` is not `ok` |
 | `meta.tool` | string | Always |
 | `meta.schema_version` | string | Always |
+| `meta.decision` | `allowed`, `restricted`, `forbidden`, or `null` | Always |
 | `meta.scope` | list of lines, sorted, for example `["A","B"]` | When `status` is `ok` |
 | `meta.truncated` | bool | When `status` is `ok` |
 | `meta.row_count` | int, rows or entries returned | When `status` is `ok` |
@@ -55,6 +56,8 @@ Every tool returns the same envelope. The current `schema_version` is `1.0`.
 | `meta.total_reports` | int, full report count of the lot | `get_lot` only, when `ok` |
 
 Payload fields appear only when `status` is `ok`. Results with any other status carry no payload, no `scope`, and no counts. Dates are `YYYY-MM-DD` strings and numeric database values are JSON numbers. A field that does not apply to a result is omitted. Nullable record fields (`disposition`, `notes`) are always present and `null` when empty.
+
+`meta.decision` is the same authorization verdict that the audit event records (see section 4), and it is `null` when no verdict was computed. It is an additive field, so `schema_version` stays `1.0`. The Strands adapter's no-principal denial also carries it, with the value `forbidden`.
 
 `truncated` is true when more rows match than the call returned. For `list_reports` that means `total_matches` is above `limit_applied`. For `get_lot` it means `total_reports` is above 50. For `characteristic_trend` it means `total_matches` is above 50.
 
