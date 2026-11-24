@@ -21,6 +21,7 @@ import psycopg
 from psycopg.rows import dict_row
 
 _ENV_PATTERN = re.compile(r"^[a-z][a-z0-9]{0,9}$")
+_HOST_PATTERN = re.compile(r"^[A-Za-z0-9.-]{1,253}$")
 _DEFAULT_ENV = "demo"
 _DEFAULT_REGION = "us-west-2"
 _SECRET_TTL_SECONDS = 300.0
@@ -46,7 +47,28 @@ def _region() -> str:
 
 def _secret_id() -> str:
     # The only secret this module reads. Owner and master secrets are never read.
-    return f"inspection-agent/{_env()}/database/agent-ro"
+    env = _env()
+    name = f"inspection-agent/{env}/database/agent-ro"
+    arn = os.environ.get("INSPECTION_DB_SECRET_ARN")
+    if not arn:
+        return name
+    pattern = (
+        r"^arn:aws[a-z-]*:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:"
+        + re.escape(name)
+        + r"-.+$"
+    )
+    if not re.fullmatch(pattern, arn):
+        raise ValueError("INSPECTION_DB_SECRET_ARN is not a valid agent-ro secret ARN")
+    return arn
+
+
+def _host(secret: dict[str, Any]) -> str:
+    override = os.environ.get("INSPECTION_DB_HOST")
+    if not override:
+        return secret["host"]
+    if not _HOST_PATTERN.fullmatch(override):
+        raise ValueError("INSPECTION_DB_HOST is not a valid host name")
+    return override
 
 
 def clear_secret_cache() -> None:
@@ -77,7 +99,7 @@ def connect() -> psycopg.Connection:
     secret = _load_secret()
     try:
         return psycopg.connect(
-            host=secret["host"],
+            host=_host(secret),
             port=int(secret["port"]),
             dbname=secret["dbname"],
             user=secret["username"],

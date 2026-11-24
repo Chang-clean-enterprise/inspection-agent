@@ -7,11 +7,12 @@ REGION ?= us-west-2
 
 DEPLOY := scripts/deploy.sh --env "$(ENV)" --region "$(REGION)"
 TEARDOWN := scripts/teardown.sh --env "$(ENV)" --region "$(REGION)"
+PACKAGE := scripts/package-agent.sh --env "$(ENV)" --region "$(REGION)"
 TEMPLATES := $(wildcard infra/*.yaml infra/*.yml infra/*.json)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help deploy teardown seed lint
+.PHONY: help deploy teardown seed package lint
 
 help:
 	@echo "inspection-agent entry point"
@@ -23,7 +24,10 @@ help:
 	@echo "  make delete-<component>    Delete one stack"
 	@echo "  make teardown              Delete all 8 stacks in Teardown_Sequence order"
 	@echo "  make seed                  Load the schema and seed data into the database"
+	@echo "  make package               Build and upload the agent code package"
 	@echo "  make lint                  Run cfn-lint on infra/ templates, then ruff check"
+	@echo ""
+	@echo "First runtime deploy order: make deploy-runtime (Phase A), make package, make deploy-runtime (Phase B)"
 	@echo ""
 	@echo "Components: network auth database runtime memory observability ui mcp"
 	@echo ""
@@ -47,6 +51,9 @@ teardown:
 
 seed:
 	scripts/seed.sh --env "$(ENV)" --region "$(REGION)"
+
+package:
+	$(PACKAGE)
 
 lint:
 ifneq ($(strip $(TEMPLATES)),)

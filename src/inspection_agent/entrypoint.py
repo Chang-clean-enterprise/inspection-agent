@@ -9,6 +9,7 @@ span attribute holds the token, the claims, the prompt, or an exception message.
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import uuid
 
@@ -25,6 +26,23 @@ from .sessions import SessionOwnerMismatch, SessionRegistry
 logger = logging.getLogger("inspection_agent.entrypoint")
 
 MAX_SESSION_ID_CHARS = 128
+
+_ALLOWED_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+
+
+def _configure_logging() -> None:
+    """Set the level on the project loggers only. The root logger is not touched.
+
+    Reads INSPECTION_LOG_LEVEL. Any value outside the allowed set falls back to INFO.
+    """
+    level = os.environ.get("INSPECTION_LOG_LEVEL", "INFO").strip().upper()
+    if level not in _ALLOWED_LOG_LEVELS:
+        level = "INFO"
+    for name in ("inspection_agent", "inspection_core"):
+        logging.getLogger(name).setLevel(level)
+
+
+_configure_logging()
 
 # Fixed error payloads. Defined once. Never built from input or from an exception.
 ERROR_UNAUTHENTICATED = {
