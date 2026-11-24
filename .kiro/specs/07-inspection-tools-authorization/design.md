@@ -543,42 +543,42 @@ The runtime audit line is read from the CloudWatch log group of the runtime. Tra
 
 | # | Persona | Tool | Parameters | Expected | Observed | Date |
 |---|---|---|---|---|---|---|
-| 1 | Line A inspector | `list_reports` | none | `ok`, `scope ["A"]`, decision `restricted`, only line A rows, `IR-2025-0031` present | | |
-| 2 | Line A inspector | `get_report` | `IR-2025-0031` | `ok`, disposition `scrap`, measurement `CHR-3001-01` 20.014 `fail`, note unchanged | | |
-| 3 | Line A inspector | `get_lot` | `LOT-20250604-01` | `ok`, 5 reports `IR-2025-0029` to `IR-2025-0033`, `total_reports` 5 | | |
-| 4 | Line A inspector | `characteristic_trend` | `DEMO-HOUSING-2001`, `bore_diameter` | `ok`, scope `["A"]`, `lots []`, `flat`, count 0 (R14.4) | | |
-| 5 | Line B inspector | `list_reports` | none | `ok`, `scope ["B"]`, only line B rows (R14.2) | | |
-| 6 | Line B inspector | `get_report` | `IR-2025-0024` | `ok`, status `submitted`, disposition `null`, note `Hole looks off on piece 2. Fixture? Tool wear? Not sure. Will recheck.` | | |
-| 7 | Line B inspector | `get_lot` | `LOT-20250528-01` | `ok`, contains `IR-2025-0024` with unchanged note and empty disposition (R14.7) | | |
-| 8 | Line B inspector | `characteristic_trend` | `DEMO-HOUSING-2001`, `bore_diameter` | `ok`, 5 lots, trend as in row 13 | | |
-| 9 | Quality supervisor | `list_reports` | none | `ok`, `scope ["A","B"]`, decision `allowed`, rows from both lines | | |
-| 10 | Quality supervisor | `get_report` | `IR-2025-0031` | Same payload as row 2 | | |
-| 11 | Quality supervisor | `get_lot` | `LOT-20250604-01` | Same payload as row 3 | | |
-| 12 | Quality supervisor | `list_reports` | `part_number=DEMO-SHAFT-3001` | `ok`, 10 reports, includes `IR-2025-0031` with disposition `scrap` (R14.6). Repeat as Line A inspector, same result | | |
-| 13 | Quality supervisor | `characteristic_trend` | `DEMO-HOUSING-2001`, `bore_diameter` | 5 lots, means 25.001, 25.006, 25.012, 25.019, 25.021 (three decimals), `out_of_tolerance_count` 0, 0, 0, 1, 2, `direction` `rising`, `consecutive_lots_toward_limit` 4 (R14.3) | | |
+| 1 | Line A inspector | `list_reports` | none | `ok`, `scope ["A"]`, decision `restricted`, only line A rows, `IR-2025-0031` present | Through the agent (Line A inspector): list_reports with no filter, audit ok / restricted / lines [A], 19 rows, includes IR-2025-0031 | 2026-11-24 |
+| 2 | Line A inspector | `get_report` | `IR-2025-0031` | `ok`, disposition `scrap`, measurement `CHR-3001-01` 20.014 `fail`, note unchanged | Through the agent: ok, disposition scrap, journal_diameter 20.014 fail; audit ok / restricted / [A]. Note text and the CHR id not checked | 2026-11-24 |
+| 3 | Line A inspector | `get_lot` | `LOT-20250604-01` | `ok`, 5 reports `IR-2025-0029` to `IR-2025-0033`, `total_reports` 5 | Through the agent: ok, audit restricted / [A], row_count 5, answer lists IR-2025-0029 and states 5 reports | 2026-11-24 |
+| 4 | Line A inspector | `characteristic_trend` | `DEMO-HOUSING-2001`, `bore_diameter` | `ok`, scope `["A"]`, `lots []`, `flat`, count 0 (R14.4) | Through the agent: ok, audit restricted / [A], row_count 0, answer says no data. Raw fields (lots [], flat) not visible through the agent | 2026-11-24 |
+| 5 | Line B inspector | `list_reports` | none | `ok`, `scope ["B"]`, only line B rows (R14.2) | Through the agent (Line B inspector): list_reports with no filter, audit ok / restricted / [B], 31 rows, no line A report IDs in the answer | 2026-11-24 |
+| 6 | Line B inspector | `get_report` | `IR-2025-0024` | `ok`, status `submitted`, disposition `null`, note `Hole looks off on piece 2. Fixture? Tool wear? Not sure. Will recheck.` | Through the agent: ok, status submitted, note quoted exactly, no disposition mentioned (none invented); audit restricted / [B] | 2026-11-24 |
+| 7 | Line B inspector | `get_lot` | `LOT-20250528-01` | `ok`, contains `IR-2025-0024` with unchanged note and empty disposition (R14.7) | Through the agent: get_lot, row_count 4, IR-2025-0024 present with its note quoted exactly, no disposition invented | 2026-11-24 |
+| 8 | Line B inspector | `characteristic_trend` | `DEMO-HOUSING-2001`, `bore_diameter` | `ok`, 5 lots, trend as in row 13 | Through the agent: 5 lots, same means and counts as row 13, audit restricted / [B] | 2026-11-24 |
+| 9 | Quality supervisor | `list_reports` | none | `ok`, `scope ["A","B"]`, decision `allowed`, rows from both lines | Through the agent (supervisor): list_reports with no filter, audit ok / allowed / [A,B], 50 rows (cap), both lines | 2026-11-24 |
+| 10 | Quality supervisor | `get_report` | `IR-2025-0031` | Same payload as row 2 | Through the agent: same values as row 2 (scrap, 20.014 fail); audit ok / allowed / [A,B] | 2026-11-24 |
+| 11 | Quality supervisor | `get_lot` | `LOT-20250604-01` | Same payload as row 3 | Through the agent: get_lot row_count 5, audit allowed / [A,B] | 2026-11-24 |
+| 12 | Quality supervisor | `list_reports` | `part_number=DEMO-SHAFT-3001` | `ok`, 10 reports, includes `IR-2025-0031` with disposition `scrap` (R14.6). Repeat as Line A inspector, same result | Through the agent: 10 reports for DEMO-SHAFT-3001 for the supervisor (allowed) and the Line A inspector (restricted), IR-2025-0031 scrap in the list | 2026-11-24 |
+| 13 | Quality supervisor | `characteristic_trend` | `DEMO-HOUSING-2001`, `bore_diameter` | 5 lots, means 25.001, 25.006, 25.012, 25.019, 25.021 (three decimals), `out_of_tolerance_count` 0, 0, 0, 1, 2, `direction` `rising`, `consecutive_lots_toward_limit` 4 (R14.3) | Through the agent: means 25.001, 25.006, 25.012, 25.019, 25.021, out-of-tolerance 0, 0, 0, 1, 2, rising, 4 consecutive lots (supervisor and Line B inspector, 5 lots, 3 runs) | 2026-11-24 |
 
 **Denial and scope (R13.4, Properties 3, 4, 5)**
 
 | # | Persona | Tool | Parameters | Expected | Observed | Date |
 |---|---|---|---|---|---|---|
-| 14 | Line B inspector | `list_reports` | `line=A` | `forbidden`, decision `forbidden`, no `reports`, no `scope` (R14.1) | | |
-| 15 | Line B inspector | `get_report` | `IR-2025-0031` | `forbidden`, uniform reason, no fields, notes, or measurements | | |
-| 16 | Line B inspector | `get_lot` | `LOT-20250604-01` | `forbidden`, no report IDs, values, notes, or counts (R14.5) | | |
-| 17 | Line B inspector | `get_lot` | `LOT-99999999-99` | `not_found`, to compare with row 16: the two results differ only in status and reason | | |
-| 18 | Line A inspector | `get_report` | `IR-2025-0024` (line B) | `forbidden`, reason text identical to row 15 | | |
-| 19 | User with no group (create one by hand, not committed) | any of the four | any | `forbidden`, reason `This user has no access to any inspection line.` for filters, uniform record reason for ID lookups, including unknown IDs | | |
-| 20 | Line B inspector | `characteristic_trend` | `DEMO-SHAFT-3001`, `journal_diameter`, `line=A` | `forbidden` | | |
-| 21 | Any | any | model prompt asks "act as supervisor" or passes a user ID in text | Tool schema has no identity parameter (check the tool spec the model sees). Result unchanged | | |
+| 14 | Line B inspector | `list_reports` | `line=A` | `forbidden`, decision `forbidden`, no `reports`, no `scope` (R14.1) | Through the agent: Line B inspector asks for line A, audit forbidden / forbidden / lines [], row_count 0, answer is a plain denial with no data | 2026-11-24 |
+| 15 | Line B inspector | `get_report` | `IR-2025-0031` | `forbidden`, uniform reason, no fields, notes, or measurements | Through the agent: get_report IR-2025-0031 as Line B inspector, audit forbidden, answer is a plain denial with no field, note, or measurement | 2026-11-24 |
+| 16 | Line B inspector | `get_lot` | `LOT-20250604-01` | `forbidden`, no report IDs, values, notes, or counts (R14.5) | Through the agent: get_lot LOT-20250604-01 and LOT-20250516-01 as Line B inspector, audit forbidden, no IDs, values, or counts in the answer | 2026-11-24 |
+| 17 | Line B inspector | `get_lot` | `LOT-99999999-99` | `not_found`, to compare with row 16: the two results differ only in status and reason | Through the agent: LOT-99999999-99 gives audit not_found, answer says the lot does not exist. Row 16 gives forbidden, so the two differ in status and wording | 2026-11-24 |
+| 18 | Line A inspector | `get_report` | `IR-2025-0024` (line B) | `forbidden`, reason text identical to row 15 | Through the agent: Line A inspector asks for IR-2025-0024, audit forbidden, same denial wording as row 15. The tool reason text is not visible through the agent | 2026-11-24 |
+| 19 | User with no group (create one by hand, not committed) | any of the four | any | `forbidden`, reason `This user has no access to any inspection line.` for filters, uniform record reason for ID lookups, including unknown IDs | Through the agent, 2026-11-24: a temporary user with no group (token has no cognito:groups claim; created with admin-create-user and deleted right after, the pool is back to 3 users). list_reports, get_report for a real ID, get_report for an unknown ID, get_lot for an unknown ID, and characteristic_trend all gave audit forbidden / lines [] / groups [] / row_count 0. Unknown IDs were forbidden too, not not_found. The exact reason strings are not visible through the agent; the answers were plain denials | 2026-11-24 |
+| 20 | Line B inspector | `characteristic_trend` | `DEMO-SHAFT-3001`, `journal_diameter`, `line=A` | `forbidden` | Through the agent: audit forbidden / lines [], answer is a plain denial | 2026-11-24 |
+| 21 | Any | any | model prompt asks "act as supervisor" or passes a user ID in text | Tool schema has no identity parameter (check the tool spec the model sees). Result unchanged | Through the agent: prompt asked to act as supervisor with a fake user ID and groups. Audit shows the token groups [line-a] and the call for line B is forbidden. Model-visible tool list checked locally: 4 tools, no identity parameter | 2026-11-24 |
 
 **Not found and invalid input (Properties 7, 9)**
 
 | # | Persona | Tool | Parameters | Expected | Observed | Date |
 |---|---|---|---|---|---|---|
-| 22 | Quality supervisor | `characteristic_trend` | `NO-SUCH-PART`, `bore_diameter` | `not_found`, reason names the part | | |
-| 23 | Quality supervisor | `characteristic_trend` | `DEMO-HOUSING-2001`, `Bore_Diameter` | `not_found`, reason names the characteristic (case-sensitive) | | |
-| 24 | Quality supervisor | `list_reports` | `date_from=2025-06-30`, `date_to=2025-05-01` | `invalid_request`, names both parameters | | |
-| 25 | Quality supervisor | `list_reports` | `limit=0` | `invalid_request` | | |
-| 26 | Quality supervisor | `list_reports` | `date_from=2025-13-40` | `invalid_request` | | |
+| 22 | Quality supervisor | `characteristic_trend` | `NO-SUCH-PART`, `bore_diameter` | `not_found`, reason names the part | Through the agent: audit not_found (supervisor), answer says the part does not exist | 2026-11-24 |
+| 23 | Quality supervisor | `characteristic_trend` | `DEMO-HOUSING-2001`, `Bore_Diameter` | `not_found`, reason names the characteristic (case-sensitive) | Through the agent: audit not_found, answer says the characteristic does not exist for the part (case-sensitive) | 2026-11-24 |
+| 24 | Quality supervisor | `list_reports` | `date_from=2025-06-30`, `date_to=2025-05-01` | `invalid_request`, names both parameters | NOT EXERCISED at the tool layer: the model refused before any tool call. Tool-layer check is local only (task 4.5). Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 25 | Quality supervisor | `list_reports` | `limit=0` | `invalid_request` | NOT EXERCISED at the tool layer: the model refused before any tool call. Local check only (task 4.5). Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 26 | Quality supervisor | `list_reports` | `date_from=2025-13-40` | `invalid_request` | NOT EXERCISED at the tool layer: the model refused before any tool call. Local check only (task 4.5). Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
 
 **Row cap (R13.5, Property 9)**
 
@@ -586,10 +586,10 @@ The seed has exactly 50 reports in total, so no committed query can match more t
 
 | # | Persona | Tool | Parameters | Expected | Observed | Date |
 |---|---|---|---|---|---|---|
-| 27 | Quality supervisor | `list_reports` | `limit=500` | 50 rows, `limit_applied` 50, `truncated` false (clamping alone does not truncate, R10.8, R10.12), `total_matches` 50 | | |
-| 28 | Quality supervisor | `list_reports` | `limit=3` | 3 rows, `limit_applied` 3, `truncated` true, `total_matches` 50, order `report_date` desc then `report_id` asc | | |
-| 29 | Quality supervisor | `list_reports` | none | 50 rows, `limit_applied` 50, `truncated` false, `total_matches` 50 | | |
-| 30 | Reviewer | n/a | Regenerate the seed with a larger report count in a scratch checkout, `make seed`, then repeat row 29 | More than 50 matches gives 50 rows, `truncated` true, `total_matches` above 50. Restore the committed seed afterward. Optional, record whether it ran | | |
+| 27 | Quality supervisor | `list_reports` | `limit=500` | 50 rows, `limit_applied` 50, `truncated` false (clamping alone does not truncate, R10.8, R10.12), `total_matches` 50 | NOT EXERCISED: the model refused limit 500 (said the maximum is 50) and made no call. Clamping verified locally only (task 4.5). Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 28 | Quality supervisor | `list_reports` | `limit=3` | 3 rows, `limit_applied` 3, `truncated` true, `total_matches` 50, order `report_date` desc then `report_id` asc | Through the agent: limit 3 gives 3 rows (audit limit 3, row_count 3). Fields truncated, total_matches, order not visible through the agent | 2026-11-24 |
+| 29 | Quality supervisor | `list_reports` | none | 50 rows, `limit_applied` 50, `truncated` false, `total_matches` 50 | Through the agent: no filter gives 50 rows (audit limit 50 supplied by the model, row_count 50). total_matches and truncated not visible | 2026-11-24 |
+| 30 | Reviewer | n/a | Regenerate the seed with a larger report count in a scratch checkout, `make seed`, then repeat row 29 | More than 50 matches gives 50 rows, `truncated` true, `total_matches` above 50. Restore the committed seed afterward. Optional, record whether it ran | NOT RUN (optional) | 2026-11-24 |
 
 **SQL injection (R13.6, Property 13)**
 
@@ -597,36 +597,36 @@ For each string parameter run the three values: `' OR '1'='1`, `'; DROP TABLE in
 
 | # | Tool | Parameter | Expected for each of the three values | Observed | Date |
 |---|---|---|---|---|---|
-| 31 | `list_reports` | `part_number` | `ok`, `reports []`, `total_matches` 0 (no wildcard match, no extra rows) | | |
-| 32 | `list_reports` | `lot_id` | Same as row 31 | | |
-| 33 | `list_reports` | `status` | `invalid_request`, lists `draft, submitted, closed` | | |
-| 34 | `list_reports` | `line` | `invalid_request`, lists `A, B` | | |
-| 35 | `list_reports` | `date_from` | `invalid_request` | | |
-| 36 | `get_report` | `report_id` | `not_found` | | |
-| 37 | `get_lot` | `lot_id` | `not_found` | | |
-| 38 | `characteristic_trend` | `part_number` | `not_found`, part | | |
-| 39 | `characteristic_trend` | `characteristic` (valid part) | `not_found`, characteristic | | |
-| 40 | Any | any | The audit line shows the value as a string cut to 200 characters. No stack trace in the result | | |
+| 31 | `list_reports` | `part_number` | `ok`, `reports []`, `total_matches` 0 (no wildcard match, no extra rows) | Through the agent: part number with quote characters, audit ok, 0 rows. Also 100%_x: ok, 0 rows (no wildcard match). After all attempts a VPC count(*) on inspection_reports was still 50 | 2026-11-24 |
+| 32 | `list_reports` | `lot_id` | Same as row 31 | Through the agent: lot ID '; DROP TABLE inspection_reports; --, audit ok, 0 rows | 2026-11-24 |
+| 33 | `list_reports` | `status` | `invalid_request`, lists `draft, submitted, closed` | NOT EXERCISED at the tool layer: the model refused the status value 100%_x before any tool call. Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 34 | `list_reports` | `line` | `invalid_request`, lists `A, B` | NOT EXERCISED at the tool layer: the model refused the line value before any tool call. Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 35 | `list_reports` | `date_from` | `invalid_request` | NOT EXERCISED at the tool layer: the model refused the date value before any tool call. Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 36 | `get_report` | `report_id` | `not_found` | NOT EXERCISED at the tool layer: the model refused the report ID as an invalid format before any tool call. Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 37 | `get_lot` | `lot_id` | `not_found` | NOT EXERCISED at the tool layer: the model refused the lot ID as an invalid format before any tool call. Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 38 | `characteristic_trend` | `part_number` | `not_found`, part | NOT EXERCISED at the tool layer: the model asked for another part number before any tool call. Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 39 | `characteristic_trend` | `characteristic` (valid part) | `not_found`, characteristic | NOT EXERCISED at the tool layer: the model asked for another characteristic before any tool call. Closed by the user's decision on 2026-11-24: covered by the local checks in task 4.5, not run at the tool layer on the deployed runtime | 2026-11-24 |
+| 40 | Any | any | The audit line shows the value as a string cut to 200 characters. No stack trace in the result | Through the agent: a 300-character report ID reached get_report, audit invalid_request, decision null, the parameter in the audit line is 200 characters, no stack trace in the result or the log window | 2026-11-24 |
 
 **No write possible (R13.7, R8.8)**
 
 | # | Check | Expected | Observed | Date |
 |---|---|---|---|---|
-| 41 | `grep -rniE "\b(insert|update|delete|truncate|create|alter|drop|copy)\b" src/inspection_core --include=*.py` excluding `seed/` | Matches only in comments or docstrings. The only SQL statements are `SELECT` (and `SET LOCAL statement_timeout`) | | |
-| 42 | From the VPC session in `docs/database.md` section 9: `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `CREATE TABLE` as `agent_ro` | Each rejected | | |
-| 43 | In a Python shell on the runtime image or a VPC session, `SHOW transaction_read_only` inside `read_only_session` | `on` | | |
-| 44 | Inspect the tool list the model sees | Exactly four tools, none accepts SQL text, table, column, or sort | | |
+| 41 | `grep -rniE "\b(insert|update|delete|truncate|create|alter|drop|copy)\b" src/inspection_core --include=*.py` excluding `seed/` | Matches only in comments or docstrings. The only SQL statements are `SELECT` (and `SET LOCAL statement_timeout`) | Grep run locally: 5 matches, all a comment, a docstring, or a dict .update() call. No SQL statement other than SELECT | 2026-11-24 |
+| 42 | From the VPC session in `docs/database.md` section 9: `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `CREATE TABLE` as `agent_ro` | Each rejected | From a CloudShell VPC session as agent_ro (observed by the user, 2026-11-24): INSERT, UPDATE, DELETE, TRUNCATE, CREATE TABLE, and CREATE TEMPORARY TABLE were each rejected with 'cannot execute ... in a read-only transaction'. That shows the session default is read-only; it does not show the privilege layer. The optional re-run with default_transaction_read_only=off was not run | 2026-11-24 |
+| 43 | In a Python shell on the runtime image or a VPC session, `SHOW transaction_read_only` inside `read_only_session` | `on` | From the VPC session with the core code: read_only_session returned {'transaction_read_only': 'on'} for SHOW transaction_read_only (Python 3.13.18, psycopg 3.3.9) | 2026-11-24 |
+| 44 | Inspect the tool list the model sees | Exactly four tools, none accepts SQL text, table, column, or sort | Checked locally with the real tool wrappers: 4 tools, no property named principal, tool_context, user, group, scope, sql, table, column, sort, or order | 2026-11-24 |
 
 **Audit and trace (R13.8, R13.9, Properties 10, 11)**
 
 | # | Check | Expected | Observed | Date |
 |---|---|---|---|---|
-| 45 | Run rows 1, 14, 17, 24 and count log lines of `inspection_core.audit` | Exactly one per call, statuses `ok`, `forbidden`, `not_found`, `invalid_request` | | |
-| 46 | Inspect a log line | Fields `tool, parameters, user_id, groups, decision, effective_lines, row_count, report_ids, duration_ms, status`. `decision` is `null` for row 24 | | |
-| 47 | Same calls in the trace view | One span carries `inspection.*` attributes per call | | |
-| 48 | Call `get_report` on `IR-2025-0024` as Line B inspector and read the log line | No note text anywhere in the line | | |
-| 49 | Call `get_lot` on a lot with more than 20 reports (not in the seed) or inspect `report_ids` on any lot call | At most 20 IDs. Record "not reachable with committed seed" if the seed has no such lot | | |
-| 50 | Stop the database (or point `INSPECTION_ENV` at an unknown env) and call any tool | `error`, generic reason, one audit line with status `error`, no host or driver text in the result | | |
+| 45 | Run rows 1, 14, 17, 24 and count log lines of `inspection_core.audit` | Exactly one per call, statuses `ok`, `forbidden`, `not_found`, `invalid_request` | 23 tool calls in the second batch produced 23 audit lines. Statuses seen: ok, forbidden, not_found, invalid_request (rows 1, 14, 17 equivalents run; row 24 itself never reached the tool) | 2026-11-24 |
+| 46 | Inspect a log line | Fields `tool, parameters, user_id, groups, decision, effective_lines, row_count, report_ids, duration_ms, status`. `decision` is `null` for row 24 | Ten fields on every line: tool, parameters, user_id, groups, decision, effective_lines, row_count, report_ids, duration_ms, status. decision null seen on the invalid_request line (row 40 case) | 2026-11-24 |
+| 47 | Same calls in the trace view | One span carries `inspection.*` attributes per call | NOT RUN: no traces found. X-Ray returned 0 traces in the last 3 hours, log group aws/spans does not exist, and infra/runtime.yaml has no tracing setting. Belongs to the observability spec | 2026-11-24 |
+| 48 | Call `get_report` on `IR-2025-0024` as Line B inspector and read the log line | No note text anywhere in the line | Log window after get_report IR-2025-0024 as Line B inspector: no note text in any audit line | 2026-11-24 |
+| 49 | Call `get_lot` on a lot with more than 20 reports (not in the seed) or inspect `report_ids` on any lot call | At most 20 IDs. Record "not reachable with committed seed" if the seed has no such lot | report_ids reached 20 on lists of 31 and 50 rows and never exceeded 20. No lot with more than 20 reports in the seed | 2026-11-24 |
+| 50 | Stop the database (or point `INSPECTION_ENV` at an unknown env) and call any tool | `error`, generic reason, one audit line with status `error`, no host or driver text in the result | Run LOCALLY (not on the deployed runtime), 2026-11-24: list_reports with INSPECTION_ENV=zzzunk gave status error, reason 'The request could not be completed. Try again later.', no host or driver text, one audit line with status error. The error class (ResourceNotFoundException) appears only in logger inspection_core.errors. The database itself was not stopped | 2026-11-24 |
 
 ## Open points
 
