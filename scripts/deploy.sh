@@ -3,13 +3,21 @@
 #
 # Usage:
 #   scripts/deploy.sh [--env <env>] [--region <region>] deploy-all
-#   scripts/deploy.sh [--env <env>] [--region <region>] deploy <component>
+#   scripts/deploy.sh [--env <env>] [--region <region>] deploy <component> [--param Key=Value ...]
 #   scripts/deploy.sh [--env <env>] [--region <region>] delete <component>
+#
+# --param passes a parameter override to one component (repeatable). It is
+# rejected by deploy-all and delete.
+#
+# The runtime is split into two stacks. pre-runtime holds the artifact bucket,
+# the execution role, and the model-id and memory-id SSM parameters. runtime
+# holds the AgentCore runtime and needs a code package (scripts/package-agent.sh)
+# in the pre-runtime artifact bucket. ModelId and MemoryId are set on pre-runtime.
 #
 # Compatible with bash 3.2 (macOS default).
 set -Eeuo pipefail
 
-COMPONENTS="network auth database runtime memory observability ui mcp"
+COMPONENTS="network auth database pre-runtime runtime memory observability ui mcp"
 ENV_PATTERN='^[a-z][a-z0-9]{0,9}$'
 DEFAULT_ENV=demo
 DEFAULT_REGION=us-west-2
@@ -18,6 +26,9 @@ ENV="$DEFAULT_ENV"
 REGION="$DEFAULT_REGION"
 COMMAND=""
 COMPONENT=""
+PARAM_OVERRIDES=()
+
+TOTAL_STEPS=13
 
 # Context reported by the ERR trap.
 CURRENT_STEP="startup"
@@ -27,12 +38,13 @@ usage() {
   cat >&2 <<EOF
 Usage:
   $0 [--env <env>] [--region <region>] deploy-all
-  $0 [--env <env>] [--region <region>] deploy <component>
+  $0 [--env <env>] [--region <region>] deploy <component> [--param Key=Value ...]
   $0 [--env <env>] [--region <region>] delete <component>
 
 Options:
   --env <env>        Environment name (default: $DEFAULT_ENV). Pattern: $ENV_PATTERN
   --region <region>  AWS region (default: $DEFAULT_REGION)
+  --param Key=Value  Parameter override for one component (repeatable, deploy only)
 
 Components: $COMPONENTS
 EOF
@@ -52,6 +64,11 @@ die() {
 
 on_err() {
   local code=$? line=$1
+  # A failure inside $(...) is handled by the caller. Reporting it here would print
+  # noise for expected not-found lookups. The shell that runs the caller reports real failures.
+  if [ "${BASH_SUBSHELL:-0}" -gt 0 ]; then
+    return 0
+  fi
   trap - ERR
   echo "ERROR in step $CURRENT_STEP ($CURRENT_STACK): command failed with exit code $code (line $line)" >&2
   exit 1
@@ -78,13 +95,208 @@ stack_status() {
   fi
 }
 
+# stack_param <component> <Key>: print the current stack parameter value,
+# or nothing when the stack or the parameter does not exist.
+stack_param() {
+  local status out
+  status=$(stack_status "$1") || return 1
+  if [[ "$status" == "ABSENT" ]]; then
+    return 0
+  fi
+  out=$(aws cloudformation describe-stacks \
+    --region "$REGION" \
+    --stack-name "$(stack_name "$1")" \
+    --query "Stacks[0].Parameters[?ParameterKey=='$2'].ParameterValue | [0]" \
+    --output text) || return 1
+  if [[ "$out" != "None" ]]; then
+    echo "$out"
+  fi
+}
+
+# template_default <component> <Key>: print the Default of a template parameter.
+template_default() {
+  awk -v k="$2" '
+    $0 == "  " k ":" { f = 1; next }
+    f && /^  [A-Za-z]/ { exit }
+    f && /^    Default:/ { sub(/^    Default: */, ""); print; exit }
+  ' "infra/$1.yaml"
+}
+
+# override_value <Key>: print the last value given for Key in RT_OVER; return 1 when absent.
+override_value() {
+  local kv found=1 val=""
+  for kv in ${RT_OVER[@]+"${RT_OVER[@]}"}; do
+    if [[ "${kv%%=*}" == "$1" ]]; then
+      val="${kv#*=}"
+      found=0
+    fi
+  done
+  echo "$val"
+  return $found
+}
+
+# resolve_package <bucket>: set PKG_KEY and PKG_VERSION (both empty when no package is known).
+# Rule 1: build/package-location.env, when it matches env, Region and the bucket, and the object exists.
+# Rule 2: the package parameters of the current runtime stack.
+# Rule 3: no package.
+resolve_package() {
+  local bucket="$1"
+  local f=build/package-location.env penv preg pbucket pkey pver key ver
+  PKG_KEY=""
+  PKG_VERSION=""
+
+  if [ -f "$f" ]; then
+    penv=$(grep -m1 '^PACKAGE_ENV=' "$f" | cut -d= -f2- || true)
+    preg=$(grep -m1 '^PACKAGE_REGION=' "$f" | cut -d= -f2- || true)
+    pbucket=$(grep -m1 '^PACKAGE_BUCKET=' "$f" | cut -d= -f2- || true)
+    pkey=$(grep -m1 '^PACKAGE_KEY=' "$f" | cut -d= -f2- || true)
+    pver=$(grep -m1 '^PACKAGE_VERSION_ID=' "$f" | cut -d= -f2- || true)
+    if [ "$penv" = "$ENV" ] && [ "$preg" = "$REGION" ] && [ "$pbucket" = "$bucket" ] \
+      && [[ "$pkey" =~ ^code/[A-Za-z0-9._-]{1,200}$ ]] \
+      && [[ "$pver" =~ ^[A-Za-z0-9._-]+$ ]] \
+      && [ "${#pver}" -ge 3 ] && [ "${#pver}" -le 1024 ] \
+      && aws s3api head-object --region "$REGION" --bucket "$pbucket" \
+        --key "$pkey" --version-id "$pver" >/dev/null 2>&1; then
+      PKG_KEY="$pkey"
+      PKG_VERSION="$pver"
+      return 0
+    fi
+  fi
+
+  key=$(stack_param runtime PackageObjectKey)
+  ver=$(stack_param runtime PackageObjectVersion)
+  if [ -n "$key" ] && [ "$key" != "none" ] && [ -n "$ver" ] && [ "$ver" != "none" ]; then
+    PKG_KEY="$key"
+    PKG_VERSION="$ver"
+  fi
+  return 0
+}
+
+# pre_runtime_parameters [Key=Value ...]: build STACK_ARGS for the pre-runtime stack.
+# Explicit arguments and --param overrides replace the computed defaults.
+pre_runtime_parameters() {
+  local model prefix mem kv d
+  local defaults=()
+  RT_OVER=("$@" ${PARAM_OVERRIDES[@]+"${PARAM_OVERRIDES[@]}"})
+  STACK_ARGS=()
+
+  if override_value ModelScope >/dev/null; then
+    echo "ModelScope is derived from ModelId and cannot be set with --param." >&2
+    exit 2
+  fi
+
+  # Effective ModelId: override, then current stack parameter, then template default.
+  if ! model=$(override_value ModelId); then
+    model=$(stack_param pre-runtime ModelId)
+    if [ -z "$model" ]; then
+      model=$(template_default pre-runtime ModelId)
+    fi
+  fi
+  prefix="${model%%.*}"
+  if [ "$prefix" != "us" ] && [ "$prefix" != "global" ]; then
+    echo "Invalid ModelId '$model': the prefix must be 'us' or 'global'." >&2
+    exit 2
+  fi
+
+  # Effective MemoryId: override, then current stack parameter, then empty.
+  if ! mem=$(override_value MemoryId); then
+    mem=$(stack_param pre-runtime MemoryId)
+  fi
+
+  defaults+=(
+    "ModelId=$model"
+    "ModelScope=$prefix"
+    "MemoryId=$mem"
+    "RuntimeSecurityGroupId=/inspection-agent/$ENV/network/runtime-security-group-id"
+    "DbSecretArn=/inspection-agent/$ENV/database/agent-ro-secret-arn"
+  )
+
+  for d in "${defaults[@]}"; do
+    if ! override_value "${d%%=*}" >/dev/null; then
+      STACK_ARGS+=("$d")
+    fi
+  done
+  for kv in ${RT_OVER[@]+"${RT_OVER[@]}"}; do
+    STACK_ARGS+=("$kv")
+  done
+}
+
+# runtime_parameters [Key=Value ...]: build STACK_ARGS for the runtime stack.
+# Stops with exit 1, before any stack is created or changed, when the pre-runtime
+# stack or a code package is missing.
+runtime_parameters() {
+  local bucket out kv d
+  local defaults=()
+  RT_OVER=("$@" ${PARAM_OVERRIDES[@]+"${PARAM_OVERRIDES[@]}"})
+  STACK_ARGS=()
+
+  if ! out=$(read_ssm "/inspection-agent/$ENV/pre-runtime/artifact-bucket" 2>&1); then
+    if [[ "$out" == *"Missing SSM parameter"* ]]; then
+      die "The pre-runtime stack is not deployed (no artifact bucket in SSM). Run: make deploy-pre-runtime ENV=$ENV REGION=$REGION"
+    fi
+    die "$out"
+  fi
+  bucket="$out"
+
+  if override_value PackageObjectKey >/dev/null || override_value PackageObjectVersion >/dev/null; then
+    if ! override_value PackageObjectKey >/dev/null || ! override_value PackageObjectVersion >/dev/null; then
+      echo "PackageObjectKey and PackageObjectVersion must be given together." >&2
+      exit 2
+    fi
+  else
+    resolve_package "$bucket"
+    if [ -z "$PKG_KEY" ]; then
+      die "No code package found. Run: make package ENV=$ENV REGION=$REGION (scripts/package-agent.sh), then deploy runtime again."
+    fi
+    defaults+=("PackageObjectKey=$PKG_KEY" "PackageObjectVersion=$PKG_VERSION")
+  fi
+
+  defaults+=(
+    "PrivateSubnetIds=/inspection-agent/$ENV/network/private-subnet-ids"
+    "RuntimeSecurityGroupId=/inspection-agent/$ENV/network/runtime-security-group-id"
+    "DiscoveryUrl=/inspection-agent/$ENV/auth/discovery-url"
+    "AppClientId=/inspection-agent/$ENV/auth/app-client-id"
+    "DbEndpoint=/inspection-agent/$ENV/database/endpoint"
+    "DbSecretArn=/inspection-agent/$ENV/database/agent-ro-secret-arn"
+    "ArtifactBucketName=/inspection-agent/$ENV/pre-runtime/artifact-bucket"
+    "ExecutionRoleArn=/inspection-agent/$ENV/pre-runtime/execution-role-arn"
+    "ModelId=/inspection-agent/$ENV/pre-runtime/model-id"
+    "MemoryId=/inspection-agent/$ENV/pre-runtime/memory-id"
+  )
+
+  for d in "${defaults[@]}"; do
+    if ! override_value "${d%%=*}" >/dev/null; then
+      STACK_ARGS+=("$d")
+    fi
+  done
+  for kv in ${RT_OVER[@]+"${RT_OVER[@]}"}; do
+    STACK_ARGS+=("$kv")
+  done
+}
+
 # deploy_stack <component> [Key=Value ...]
 deploy_stack() {
   local c="$1"
   shift
   local name status
+  local extra=()
   name=$(stack_name "$c")
   CURRENT_STACK="$name"
+
+  # Resolve parameters first, so a missing prerequisite stops the run before any stack changes.
+  case "$c" in
+    pre-runtime)
+      pre_runtime_parameters "$@"
+      extra=("${STACK_ARGS[@]}")
+      ;;
+    runtime)
+      runtime_parameters "$@"
+      extra=("${STACK_ARGS[@]}")
+      ;;
+    *)
+      extra=(${1+"$@"} ${PARAM_OVERRIDES[@]+"${PARAM_OVERRIDES[@]}"})
+      ;;
+  esac
 
   status=$(stack_status "$c")
   if [[ "$status" == "ROLLBACK_COMPLETE" ]]; then
@@ -95,7 +307,7 @@ deploy_stack() {
     --region "$REGION" \
     --stack-name "$name" \
     --template-file "infra/$c.yaml" \
-    --parameter-overrides "Env=$ENV" "$@" \
+    --parameter-overrides "Env=$ENV" ${extra[@]+"${extra[@]}"} \
     --capabilities CAPABILITY_NAMED_IAM \
     --tags "Project=inspection-agent" "Env=$ENV" \
     --no-fail-on-empty-changeset
@@ -104,6 +316,61 @@ deploy_stack() {
   if [[ "$status" != "CREATE_COMPLETE" && "$status" != "UPDATE_COMPLETE" ]]; then
     fail "$CURRENT_STEP" "$name" "unexpected stack status $status"
   fi
+}
+
+# empty_artifact_bucket: delete every object version and delete marker in the
+# pre-runtime stack's artifact bucket, so the stack delete can remove the bucket.
+# Skips quietly when the bucket is not known or no longer exists.
+empty_artifact_bucket() {
+  local bucket listing batch errors count=0
+  command -v python3 >/dev/null 2>&1 || fail "$CURRENT_STEP" "$CURRENT_STACK" "python3 not found on PATH"
+
+  bucket=$(aws cloudformation describe-stack-resource \
+    --region "$REGION" \
+    --stack-name "$(stack_name pre-runtime)" \
+    --logical-resource-id ArtifactBucket \
+    --query StackResourceDetail.PhysicalResourceId \
+    --output text 2>/dev/null || true)
+  if [ -z "$bucket" ] || [ "$bucket" = "None" ]; then
+    echo "No artifact bucket found in the pre-runtime stack; nothing to empty."
+    return 0
+  fi
+  if ! aws s3api head-bucket --region "$REGION" --bucket "$bucket" >/dev/null 2>&1; then
+    echo "Artifact bucket $bucket does not exist or is not accessible; skipping."
+    return 0
+  fi
+
+  echo "Emptying artifact bucket $bucket (all versions and delete markers)."
+  while true; do
+    listing=$(aws s3api list-object-versions \
+      --region "$REGION" \
+      --bucket "$bucket" \
+      --max-items 1000 \
+      --output json)
+    batch=$(printf '%s' "$listing" | python3 -c '
+import json, sys
+data = json.load(sys.stdin) or {}
+objs = [
+    {"Key": o["Key"], "VersionId": o["VersionId"]}
+    for o in (data.get("Versions") or []) + (data.get("DeleteMarkers") or [])
+]
+print(json.dumps({"Objects": objs, "Quiet": True}) if objs else "")
+')
+    if [ -z "$batch" ]; then
+      break
+    fi
+    errors=$(aws s3api delete-objects \
+      --region "$REGION" \
+      --bucket "$bucket" \
+      --delete "$batch" \
+      --query 'Errors[0].Code' \
+      --output text)
+    if [ -n "$errors" ] && [ "$errors" != "None" ]; then
+      fail "$CURRENT_STEP" "$CURRENT_STACK" "could not delete objects from $bucket: $errors"
+    fi
+    count=$((count + 1))
+  done
+  echo "Artifact bucket $bucket emptied ($count batch(es))."
 }
 
 # delete_stack <component>
@@ -117,6 +384,10 @@ delete_stack() {
   if [[ "$status" == "ABSENT" ]]; then
     echo "Stack $name does not exist; skipping."
     return 0
+  fi
+
+  if [ "$c" = "pre-runtime" ]; then
+    empty_artifact_bucket
   fi
 
   aws cloudformation delete-stack --region "$REGION" --stack-name "$name"
@@ -156,10 +427,24 @@ require_param() {
   fi
 }
 
+# require_resolved <component> <Key> <expected>: check the resolved value of an SSM-typed parameter.
+require_resolved() {
+  local c="$1" key="$2" expected="$3" actual
+  actual=$(aws cloudformation describe-stacks \
+    --region "$REGION" \
+    --stack-name "$(stack_name "$c")" \
+    --query "Stacks[0].Parameters[?ParameterKey=='$key'].ResolvedValue | [0]" \
+    --output text)
+  if [[ "$actual" != "$expected" ]]; then
+    fail "$CURRENT_STEP" "$(stack_name "$c")" \
+      "resolved parameter $key mismatch: expected '$expected', actual '$actual'"
+  fi
+}
+
 step() {
   CURRENT_STEP="$1"
   CURRENT_STACK=$(stack_name "$2")
-  echo "==> Step $1/10: $CURRENT_STACK"
+  echo "==> Step $1/$TOTAL_STEPS: $CURRENT_STACK"
 }
 
 deploy_all() {
@@ -174,31 +459,43 @@ deploy_all() {
   step 3 database
   deploy_stack database
 
-  step 4 runtime
-  deploy_stack runtime "MemoryId="
+  step 4 pre-runtime
+  deploy_stack pre-runtime "MemoryId="
 
-  step 5 memory
-  deploy_stack memory
+  CURRENT_STEP=5
+  CURRENT_STACK="scripts/package-agent.sh"
+  echo "==> Step 5/$TOTAL_STEPS: package the agent code"
+  bash scripts/package-agent.sh --env "$ENV" --region "$REGION"
 
   step 6 runtime
-  id=$(read_ssm "/inspection-agent/$ENV/memory/memory-id")
-  deploy_stack runtime "MemoryId=$id"
-  require_param runtime MemoryId "$id"
+  deploy_stack runtime
 
-  step 7 observability
+  step 7 memory
+  deploy_stack memory
+
+  step 8 pre-runtime
+  id=$(read_ssm "/inspection-agent/$ENV/memory/memory-id")
+  deploy_stack pre-runtime "MemoryId=$id"
+  require_param pre-runtime MemoryId "$id"
+
+  step 9 runtime
+  deploy_stack runtime
+  require_resolved runtime MemoryId "$id"
+
+  step 10 observability
   deploy_stack observability
 
-  step 8 ui
+  step 11 ui
   deploy_stack ui
 
-  step 9 auth
+  step 12 auth
   cb=$(read_ssm "/inspection-agent/$ENV/ui/callback-url")
   lo=$(read_ssm "/inspection-agent/$ENV/ui/logout-url")
   deploy_stack auth "CallbackUrl=$cb" "LogoutUrl=$lo"
   require_param auth CallbackUrl "$cb"
   require_param auth LogoutUrl "$lo"
 
-  step 10 mcp
+  step 13 mcp
   deploy_stack mcp
 
   echo "Deploy complete."
@@ -216,6 +513,19 @@ while [ $# -gt 0 ]; do
     --region)
       [ $# -ge 2 ] || { usage; exit 2; }
       REGION="$2"
+      shift 2
+      ;;
+    --param)
+      [ $# -ge 2 ] || { usage; exit 2; }
+      if ! [[ "$2" =~ ^[A-Za-z][A-Za-z0-9]*=.*$ ]]; then
+        echo "Invalid --param '$2': expected Key=Value." >&2
+        exit 2
+      fi
+      if [ "${2%%=*}" = "Env" ]; then
+        echo "Use --env to set Env; --param Env=... is not allowed." >&2
+        exit 2
+      fi
+      PARAM_OVERRIDES+=("$2")
       shift 2
       ;;
     -h | --help)
@@ -245,9 +555,17 @@ done
 case "$COMMAND" in
   deploy-all)
     [ -z "$COMPONENT" ] || { usage; exit 2; }
+    if [ ${#PARAM_OVERRIDES[@]} -gt 0 ]; then
+      echo "--param is not supported with deploy-all. Use: deploy <component> --param Key=Value" >&2
+      exit 2
+    fi
     ;;
   deploy | delete)
     [ -n "$COMPONENT" ] || { usage; exit 2; }
+    if [ "$COMMAND" = "delete" ] && [ ${#PARAM_OVERRIDES[@]} -gt 0 ]; then
+      echo "--param is only supported with deploy." >&2
+      exit 2
+    fi
     ;;
   *)
     usage
@@ -280,6 +598,30 @@ if [ "$COMMAND" = "deploy-all" ]; then
 elif [ "$COMMAND" = "deploy" ]; then
   [ -f "infra/$COMPONENT.yaml" ] || die "Template not found: infra/$COMPONENT.yaml"
 fi
+
+for kv in ${PARAM_OVERRIDES[@]+"${PARAM_OVERRIDES[@]}"}; do
+  if [ "${kv%%=*}" = "ModelScope" ]; then
+    echo "ModelScope is derived from ModelId and cannot be set with --param." >&2
+    exit 2
+  fi
+  if [ "$COMPONENT" = "runtime" ]; then
+    case "${kv%%=*}" in
+      ModelId | MemoryId)
+        echo "${kv%%=*} belongs to the pre-runtime stack. Use: deploy pre-runtime --param ${kv%%=*}=<value>, then deploy runtime." >&2
+        exit 2
+        ;;
+    esac
+  fi
+  if [ "${kv%%=*}" = "ModelId" ] && [ "$COMPONENT" = "pre-runtime" ]; then
+    case "${kv#*=}" in
+      us.* | global.*) ;;
+      *)
+        echo "Invalid ModelId '${kv#*=}': the prefix must be 'us' or 'global'." >&2
+        exit 2
+        ;;
+    esac
+  fi
+done
 
 command -v aws >/dev/null 2>&1 || die "AWS CLI not found on PATH"
 

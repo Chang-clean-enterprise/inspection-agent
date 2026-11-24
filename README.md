@@ -45,18 +45,23 @@ Pass them to any command, for example `make deploy ENV=dev1 REGION=us-west-2`. S
 
 ## Deploy
 
-`make deploy` runs all 10 steps below in order. Each step starts after the previous stack completes.
+`make deploy` runs all 13 steps below in order. Each step starts after the previous one completes.
 
 1. network: `make deploy-network`
 2. auth: `make deploy-auth`
 3. database: `make deploy-database`
-4. runtime: `make deploy-runtime`. The full deploy passes an empty `MemoryId` at this step.
-5. memory: `make deploy-memory`. It publishes the memory ID as an SSM parameter.
-6. runtime update: the full deploy reads the memory ID produced by step 5 and updates the runtime stack so `MemoryId` is that value.
-7. observability: `make deploy-observability`
-8. ui: `make deploy-ui`. It publishes the CloudFront callback URL and logout URL as SSM parameters.
-9. auth update: the full deploy reads the callback URL and logout URL produced by step 8 and updates the auth stack with them.
-10. mcp: `make deploy-mcp`
+4. pre-runtime: `make deploy-pre-runtime`. It creates the artifact bucket and the execution role. The full deploy passes an empty `MemoryId` at this step.
+5. package: `make package`. It builds the agent code package and uploads it to the artifact bucket.
+6. runtime: `make deploy-runtime`. It creates the AgentCore runtime from the package.
+7. memory: `make deploy-memory`. It publishes the memory ID as an SSM parameter.
+8. pre-runtime update: the full deploy reads the memory ID produced by step 7 and updates the pre-runtime stack so `MemoryId` is that value.
+9. runtime update: the full deploy updates the runtime stack so it reads the new memory ID from SSM.
+10. observability: `make deploy-observability`
+11. ui: `make deploy-ui`. It publishes the CloudFront callback URL and logout URL as SSM parameters.
+12. auth update: the full deploy reads the callback URL and logout URL produced by step 11 and updates the auth stack with them.
+13. mcp: `make deploy-mcp`
+
+To update the agent code later, run `make package` and then `make deploy-runtime`.
 
 ### Per-component commands
 
@@ -67,7 +72,8 @@ Each command creates or updates one stack, or deletes it. Deleting an absent sta
 | network | `make deploy-network` | `make delete-network` |
 | auth | `make deploy-auth` | `make delete-auth` |
 | database | `make deploy-database` | `make delete-database` |
-| runtime | `make deploy-runtime` | `make delete-runtime` |
+| pre-runtime | `make deploy-pre-runtime` | `make delete-pre-runtime` |
+| runtime | `make deploy-runtime` (needs `make package` first) | `make delete-runtime` |
 | memory | `make deploy-memory` | `make delete-memory` |
 | observability | `make deploy-observability` | `make delete-observability` |
 | ui | `make deploy-ui` | `make delete-ui` |
@@ -75,16 +81,17 @@ Each command creates or updates one stack, or deletes it. Deleting an absent sta
 
 ## Teardown
 
-`make teardown` deletes all 8 stacks in the order below. To delete them one at a time, run these commands in this order.
+`make teardown` deletes all 9 stacks in the order below. To delete them one at a time, run these commands in this order.
 
 1. mcp: `make delete-mcp`
 2. ui: `make delete-ui`
 3. observability: `make delete-observability`
 4. memory: `make delete-memory`
 5. runtime: `make delete-runtime`
-6. database: `make delete-database`
-7. auth: `make delete-auth`
-8. network: `make delete-network`
+6. pre-runtime: `make delete-pre-runtime`. It empties the versioned artifact bucket first.
+7. database: `make delete-database`
+8. auth: `make delete-auth`
+9. network: `make delete-network`
 
 Run `make help` to list all targets.
 

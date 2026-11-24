@@ -1,0 +1,547 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Add database environment variables to `src/inspection_core/db.py`": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490817991
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490822150
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490931017
+      }
+    ],
+    "1.2 Add log level handling to `src/inspection_agent/entrypoint.py`": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818024
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490934915
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491049323
+      }
+    ],
+    "1.3 Manual verification of the Python changes": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818057
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491141668
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491496952
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491630756
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491655023
+      }
+    ],
+    "2.1 Declare parameters, Rule, Conditions and Mappings": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818094
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490822422
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490929619
+      }
+    ],
+    "2.2 Add the artifact bucket, bucket policy and execution role": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818122
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490934956
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491050617
+      }
+    ],
+    "2.3 Add the runtime resource, SSM parameters and outputs": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818149
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491056056
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491103088
+      }
+    ],
+    "2.4 Lint the template": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818174
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491109215
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491141587
+      }
+    ],
+    "3.1 Implement the script": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818206
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490822928
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490930123
+      }
+    ],
+    "3.2 Manual verification of the packaging steps that need no deployment": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818246
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491497028
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491630052
+      }
+    ],
+    "4.1 Pass runtime parameters, derive `ModelScope`, and support `--param`": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818271
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490935435
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491049817
+      }
+    ],
+    "4.2 Wire the two-phase flow into `deploy-all` and bucket emptying into `delete runtime`": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818327
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491056097
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491103550
+      }
+    ],
+    "4.3 Manual verification of the deploy script without changing AWS": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818354
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491497074
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491630362
+      }
+    ],
+    "5.1 Add `--persona` sign-in": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818379
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490823411
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490928818
+      }
+    ],
+    "5.2 Add status handling and session ID generation": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818403
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490935957
+      },
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491048523
+      }
+    ],
+    "6. Checkpoint - Review the static work": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818429
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491658999
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491677264
+      }
+    ],
+    "7.1 Deploy Phase A and inspect it": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818453
+      },
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491677812
+      },
+      {
+        "executionId": "89c9c3e6-76b7-4648-8894-44558980a378",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795493639105
+      }
+    ],
+    "7.2 Run the package upload and Phase B, and record the two-phase result": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818474
+      },
+      {
+        "executionId": "89c9c3e6-76b7-4648-8894-44558980a378",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795493639151
+      },
+      {
+        "executionId": "970f71c1-7d70-4116-bd5f-8aa896ea7f01",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795494775183
+      }
+    ],
+    "7.3 Invoke the runtime for the first time": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818506
+      },
+      {
+        "executionId": "970f71c1-7d70-4116-bd5f-8aa896ea7f01",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795494781702
+      },
+      {
+        "executionId": "d8ea711a-520d-45ef-9bfa-6bfafb3f3f70",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495013545
+      }
+    ],
+    "7.4 Conditional: enable `EnableS3ReadFallback`": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818531
+      },
+      {
+        "executionId": "d8ea711a-520d-45ef-9bfa-6bfafb3f3f70",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495016605
+      },
+      {
+        "executionId": "d8ea711a-520d-45ef-9bfa-6bfafb3f3f70",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495021826
+      }
+    ],
+    "7.5 Conditional: enable `EnableEniFallback`": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818555
+      },
+      {
+        "executionId": "d8ea711a-520d-45ef-9bfa-6bfafb3f3f70",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495021871
+      },
+      {
+        "executionId": "d8ea711a-520d-45ef-9bfa-6bfafb3f3f70",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495025004
+      }
+    ],
+    "8.1 Verify inbound authentication": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818578
+      },
+      {
+        "executionId": "d8ea711a-520d-45ef-9bfa-6bfafb3f3f70",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495029782
+      },
+      {
+        "executionId": "2bbc26d8-fec3-4317-b810-0d3cc25b1c8d",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495171261
+      }
+    ],
+    "8.2 Verify demo behavior through the runtime": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818604
+      },
+      {
+        "executionId": "2bbc26d8-fec3-4317-b810-0d3cc25b1c8d",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495171321
+      },
+      {
+        "executionId": "a863e978-0e90-4b59-856b-b3e9419b8405",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495538000
+      }
+    ],
+    "8.3 Verify the environment variables and the execution role": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818632
+      },
+      {
+        "executionId": "a863e978-0e90-4b59-856b-b3e9419b8405",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495538055
+      },
+      {
+        "executionId": "a863e978-0e90-4b59-856b-b3e9419b8405",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495541737
+      }
+    ],
+    "8.4 Verify an in-place lifecycle update and idempotent deploys": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818663
+      },
+      {
+        "executionId": "a863e978-0e90-4b59-856b-b3e9419b8405",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495542344
+      },
+      {
+        "executionId": "c94edb85-8f92-43ca-b8f9-95b9a2af05c6",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495970904
+      }
+    ],
+    "8.5 Verify a code update reaches new sessions only": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818688
+      },
+      {
+        "executionId": "c94edb85-8f92-43ca-b8f9-95b9a2af05c6",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495984294
+      },
+      {
+        "executionId": "0eaa89b8-6b97-4b01-ab4a-13507e524a99",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795496415778
+      }
+    ],
+    "8.6 Verify global profile scope and bucket cleanup": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818712
+      },
+      {
+        "executionId": "0eaa89b8-6b97-4b01-ab4a-13507e524a99",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795496415851
+      },
+      {
+        "executionId": "1d12c809-598d-451b-9fac-52eba7e4a023",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795497254933
+      }
+    ],
+    "9.1 Write the runtime document": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818737
+      },
+      {
+        "executionId": "1d12c809-598d-451b-9fac-52eba7e4a023",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795497255028
+      },
+      {
+        "executionId": "1d12c809-598d-451b-9fac-52eba7e4a023",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795497336873
+      }
+    ],
+    "10. Final checkpoint - Confirm everything is verified": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795490818764
+      },
+      {
+        "executionId": "1d12c809-598d-451b-9fac-52eba7e4a023",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795497337352
+      },
+      {
+        "executionId": "1d12c809-598d-451b-9fac-52eba7e4a023",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795497358319
+      }
+    ],
+    "5. Extend the invoke script `scripts/invoke.sh`": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491048562
+      }
+    ],
+    "2. Write the runtime CloudFormation template `infra/runtime.yaml`": [
+      {
+        "executionId": "8de121aa-ae96-4b11-bbbb-d390501cfe78",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491141616
+      }
+    ],
+    "3. Write the packaging script `scripts/package-agent.sh`": [
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491630089
+      }
+    ],
+    "4. Extend the deploy script `scripts/deploy.sh`": [
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491630389
+      }
+    ],
+    "1. Add runtime configuration to the Python code": [
+      {
+        "executionId": "8dd8564c-a9a5-4c4c-bd53-5f46c6c49307",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795491655061
+      }
+    ],
+    "7. First-deploy verification": [
+      {
+        "executionId": "d8ea711a-520d-45ef-9bfa-6bfafb3f3f70",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795495025036
+      }
+    ],
+    "8. Verify deployed behavior by hand": [
+      {
+        "executionId": "1d12c809-598d-451b-9fac-52eba7e4a023",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795497254981
+      }
+    ],
+    "9. Write `docs/runtime.md`": [
+      {
+        "executionId": "1d12c809-598d-451b-9fac-52eba7e4a023",
+        "chatSessionId": "sess_c556aadc-d183-45dd-b41c-fe973b6ff3dc",
+        "timestamp": 1795497336910
+      }
+    ]
+  }
+}

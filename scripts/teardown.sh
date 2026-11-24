@@ -8,7 +8,7 @@
 # Compatible with bash 3.2 (macOS default).
 set -Eeuo pipefail
 
-TEARDOWN_SEQUENCE="mcp ui observability memory runtime database auth network"
+TEARDOWN_SEQUENCE="mcp ui observability memory runtime pre-runtime database auth network"
 ENV_PATTERN='^[a-z][a-z0-9]{0,9}$'
 DEFAULT_ENV=demo
 DEFAULT_REGION=us-west-2

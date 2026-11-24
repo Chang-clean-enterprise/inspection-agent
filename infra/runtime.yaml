@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: inspection-agent runtime stack. AgentCore Runtime from an S3 code package. Needs the pre-runtime stack (artifact bucket, execution role, model and memory SSM parameters).
+
+Parameters:
+  Env:
+    Type: String
+    Description: Deployment environment name. Part of every stack name and SSM parameter path.
+    Default: demo
+    AllowedPattern: ^[a-z][a-z0-9]{0,9}$
+  IdleRuntimeSessionTimeout:
+    Type: Number
+    Description: Seconds of inactivity before a runtime session ends. 60 to 28800. The AgentCore service validates this value against MaxLifetime.
+    Default: 900
+    MinValue: 60
+    MaxValue: 28800
+  MaxLifetime:
+    Type: Number
+    Description: Maximum lifetime in seconds of a runtime session. 60 to 28800.
+    Default: 28800
+    MinValue: 60
+    MaxValue: 28800
+  LogLevel:
+    Type: String
+    Description: Log level of the agent code.
+    Default: INFO
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+  PackageObjectKey:
+    Type: String
+    Description: S3 object key of the code package in the artifact bucket. Set by scripts/deploy.sh from the output of scripts/package-agent.sh.
+    AllowedPattern: ^code/[A-Za-z0-9._-]{1,200}$
+  PackageObjectVersion:
+    Type: String
+    Description: S3 object version ID of the code package. Set by scripts/deploy.sh from the output of scripts/package-agent.sh.
+    AllowedPattern: ^[A-Za-z0-9._-]{3,1024}$
+  PlatformVersion:
+    Type: String
+    Description: AgentCore Runtime platform version. Pinned because the service default differs between sources.
+    Default: V1
+    AllowedValues:
+      - V1
+      - V2
+  PrivateSubnetIds:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Description: SSM parameter name that holds the private subnet IDs published by the network stack.
+    Default: /inspection-agent/demo/network/private-subnet-ids
+  RuntimeSecurityGroupId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the runtime security group ID published by the network stack.
+    Default: /inspection-agent/demo/network/runtime-security-group-id
+  DiscoveryUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the Cognito OpenID discovery URL published by the auth stack.
+    Default: /inspection-agent/demo/auth/discovery-url
+  AppClientId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the Cognito app client ID published by the auth stack.
+    Default: /inspection-agent/demo/auth/app-client-id
+  DbEndpoint:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the database endpoint published by the database stack.
+    Default: /inspection-agent/demo/database/endpoint
+  DbSecretArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the read-only database secret ARN published by the database stack.
+    Default: /inspection-agent/demo/database/agent-ro-secret-arn
+  ArtifactBucketName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the artifact bucket name published by the pre-runtime stack.
+    Default: /inspection-agent/demo/pre-runtime/artifact-bucket
+  ExecutionRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the execution role ARN published by the pre-runtime stack.
+    Default: /inspection-agent/demo/pre-runtime/execution-role-arn
+  ModelId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the Bedrock inference profile ID published by the pre-runtime stack.
+    Default: /inspection-agent/demo/pre-runtime/model-id
+  MemoryId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the AgentCore memory ID published by the pre-runtime stack. The value none means no memory yet.
+    Default: /inspection-agent/demo/pre-runtime/memory-id
+
+Conditions:
+  HasMemory: !Not [!Equals [!Ref MemoryId, none]]
+
+Resources:
+  AgentRuntime:
+    Type: AWS::BedrockAgentCore::Runtime
+    Properties:
+      AgentRuntimeName: !Sub inspection_agent_${Env}
+      Description: inspection-agent runtime. Strands agent from an S3 code package.
+      RoleArn: !Ref ExecutionRoleArn
+      PlatformVersion: !Ref PlatformVersion
+      AgentRuntimeArtifact:
+        CodeConfiguration:
+          Runtime: PYTHON_3_12
+          EntryPoint:
+            - main.py
+          Code:
+            S3:
+              Bucket: !Ref ArtifactBucketName
+              Prefix: !Ref PackageObjectKey
+              VersionId: !Ref PackageObjectVersion
+      NetworkConfiguration:
+        NetworkMode: VPC
+        NetworkModeConfig:
+          Subnets: !Ref PrivateSubnetIds
+          SecurityGroups:
+            - !Ref RuntimeSecurityGroupId
+      AuthorizerConfiguration:
+        CustomJWTAuthorizer:
+          DiscoveryUrl: !Ref DiscoveryUrl
+          AllowedClients:
+            - !Ref AppClientId
+      RequestHeaderConfiguration:
+        RequestHeaderAllowlist:
+          - Authorization
+      LifecycleConfiguration:
+        IdleRuntimeSessionTimeout: !Ref IdleRuntimeSessionTimeout
+        MaxLifetime: !Ref MaxLifetime
+      EnvironmentVariables:
+        INSPECTION_ENV: !Ref Env
+        AWS_REGION: !Ref AWS::Region
+        INSPECTION_MODEL_ID: !Ref ModelId
+        INSPECTION_MODEL_REGION: !Ref AWS::Region
+        INSPECTION_DB_HOST: !Ref DbEndpoint
+        INSPECTION_DB_SECRET_ARN: !Ref DbSecretArn
+        INSPECTION_LOG_LEVEL: !Ref LogLevel
+        INSPECTION_MEMORY_ID: !If
+          - HasMemory
+          - !Ref MemoryId
+          - !Ref AWS::NoValue
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  RuntimeArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/runtime/runtime-arn
+      Type: String
+      Value: !GetAtt AgentRuntime.AgentRuntimeArn
+      Description: ARN of the AgentCore runtime.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  RuntimeIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/runtime/runtime-id
+      Type: String
+      Value: !GetAtt AgentRuntime.AgentRuntimeId
+      Description: ID of the AgentCore runtime.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  # CloudFormation has no URL-encode function. The placeholder {EncodedRuntimeArn} stands for the URL-encoded runtime ARN.
+  InvocationUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/runtime/invocation-url
+      Type: String
+      Value: !Sub https://bedrock-agentcore.${AWS::Region}.amazonaws.com/runtimes/{EncodedRuntimeArn}/invocations?qualifier=DEFAULT
+      Description: Invocation URL pattern of the runtime. Replace {EncodedRuntimeArn} with the URL-encoded runtime ARN.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+Outputs:
+  InvocationUrlPattern:
+    Description: Invocation URL pattern of the runtime. Replace {EncodedRuntimeArn} with the URL-encoded runtime ARN.
+    Value: !Sub https://bedrock-agentcore.${AWS::Region}.amazonaws.com/runtimes/{EncodedRuntimeArn}/invocations?qualifier=DEFAULT
+  AgentRuntimeArn:
+    Description: ARN of the AgentCore runtime.
+    Value: !GetAtt AgentRuntime.AgentRuntimeArn
+  AgentRuntimeId:
+    Description: ID of the AgentCore runtime.
+    Value: !GetAtt AgentRuntime.AgentRuntimeId
