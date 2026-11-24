@@ -4,11 +4,12 @@ CloudFormation templates for inspection-agent, one template per Component.
 
 ## Contents
 
-The 8 Components are:
+The 9 Components are:
 
 - network
 - auth
 - database
+- pre-runtime
 - runtime
 - memory
 - observability
