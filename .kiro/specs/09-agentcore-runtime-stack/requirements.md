@@ -1,3 +1,5 @@
+> Note (2026-11-24, after implementation): the single runtime stack with a two-phase deploy was split into two stacks, `pre-runtime` (artifact bucket, execution role, model and memory SSM parameters, formerly Phase A) and `runtime` (AgentRuntime, formerly Phase B). See docs/runtime.md. The text below describes the original design.
+
 # Requirements Document
 
 ## Introduction

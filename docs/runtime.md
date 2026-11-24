@@ -1,6 +1,13 @@
 # AgentCore runtime
 
-This document covers the `inspection-agent-<env>-runtime` stack (`infra/runtime.yaml`). The stack deploys the Strands agent (`src/inspection_agent/` with `src/inspection_core/`) to Amazon Bedrock AgentCore Runtime. It uses the code-in-S3 artifact option, VPC network mode, and a custom JWT authorizer backed by the Cognito user pool from the auth stack.
+This document covers two stacks, deployed in this order:
+
+- `inspection-agent-<env>-pre-runtime` (`infra/pre-runtime.yaml`): the artifact bucket, the execution role, and the model and memory SSM parameters.
+- `inspection-agent-<env>-runtime` (`infra/runtime.yaml`): the AgentCore runtime.
+
+The stacks deploy the Strands agent (`src/inspection_agent/` with `src/inspection_core/`) to Amazon Bedrock AgentCore Runtime. They use the code-in-S3 artifact option, VPC network mode, and a custom JWT authorizer backed by the Cognito user pool from the auth stack.
+
+The split exists because `AWS::BedrockAgentCore::Runtime` needs the code package to exist in S3 when it is created, and the bucket must exist before the package can be uploaded. The bucket lives in `pre-runtime`, the package is uploaded between the two deploys, and `runtime` reads everything it needs from SSM.
 
 Placeholders used below: `<env>` (default `demo`), `<account-id>`, `<bucket>`, `<runtime-arn>`. Replace them with your own values. The repository contains no account-specific identifiers.
 
@@ -24,28 +31,56 @@ Facts checked on 2026-11-23 against the AWS documentation.
 
 ## 2. Parameters
 
-Every parameter has a constraint. Pass overrides with `scripts/deploy.sh deploy runtime --param Key=Value`.
+Every parameter has a constraint. Pass overrides with `scripts/deploy.sh deploy <component> --param Key=Value`.
+
+### pre-runtime
 
 | Name | Default | Constraint | Notes |
 |---|---|---|---|
 | `Env` | `demo` | `^[a-z][a-z0-9]{0,9}$` | Set by `--env`. |
-| `ModelId` | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | `^(us\|global)\.[a-z0-9-]+\.[a-z0-9][a-z0-9:_-]*$` | Geographic (`us.`) or global (`global.`) profile ID only. Other prefixes and bare foundation model IDs are rejected. |
+| `ModelId` | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | `^(us\|global)\.[a-z0-9-]+\.[a-z0-9][a-z0-9:_-]*$` | Geographic (`us.`) or global (`global.`) profile ID only. Other prefixes and bare foundation model IDs are rejected. `deploy.sh` keeps the current stack value when you do not pass one. |
 | `ModelScope` | `us` | `us`, `global` | Derived by `deploy.sh` from the `ModelId` prefix. Do not set it by hand. |
+| `MemoryId` | empty | empty or `^[a-zA-Z][a-zA-Z0-9_-]{0,99}-[a-zA-Z0-9]{10}$` | Empty until the memory stack exists. `deploy.sh` keeps the current stack value when you do not pass one. Published to SSM as `none` when empty. |
+| `EnableS3ReadFallback` | `false` | `true`, `false` | Adds `s3:GetObject` and `s3:GetObjectVersion` on `<bucket>/code/*` to the execution role. Not needed in the first deploy. |
+| `EnableEniFallback` | `false` | `true`, `false` | Adds network interface permissions to the execution role. Not needed in the first deploy. |
+| `RuntimeSecurityGroupId`, `DbSecretArn` | SSM paths under `network` and `database` | SSM parameter type | Used by the role statements. |
+
+### runtime
+
+| Name | Default | Constraint | Notes |
+|---|---|---|---|
+| `Env` | `demo` | `^[a-z][a-z0-9]{0,9}$` | Set by `--env`. |
+| `PackageObjectKey` | none (required) | `^code/[A-Za-z0-9._-]{1,200}$` | Filled by `deploy.sh` from `build/package-location.env`. |
+| `PackageObjectVersion` | none (required) | `^[A-Za-z0-9._-]{3,1024}$` | Filled by `deploy.sh`. |
 | `IdleRuntimeSessionTimeout` | 900 | 60 to 28800 | The AgentCore service checks it against `MaxLifetime`. The repository does not. |
 | `MaxLifetime` | 28800 | 60 to 28800 | |
 | `LogLevel` | `INFO` | `DEBUG`, `INFO`, `WARNING`, `ERROR` | Applied to the `inspection_agent` and `inspection_core` loggers only. |
-| `MemoryId` | empty | empty or `^[a-zA-Z][a-zA-Z0-9_-]{0,99}-[a-zA-Z0-9]{10}$` | Empty until the memory stack exists. `INSPECTION_MEMORY_ID` is set only when this is not empty. |
-| `PackageObjectKey` | `none` | `none` or `code/<name>` | `none` means Phase A (no runtime). `deploy.sh` fills it. |
-| `PackageObjectVersion` | `none` | `none` or an S3 version ID | Must be `none` exactly when `PackageObjectKey` is `none`. `deploy.sh` fills it. |
 | `PlatformVersion` | `V1` | `V1`, `V2` | |
-| `EnableS3ReadFallback` | `false` | `true`, `false` | Adds `s3:GetObject` and `s3:GetObjectVersion` on `<bucket>/code/*` to the execution role. Not needed in the first deploy. |
-| `EnableEniFallback` | `false` | `true`, `false` | Adds network interface permissions to the execution role. Not needed in the first deploy. |
+| SSM-typed parameters | See section 3 | SSM parameter type | Network, auth, database, and pre-runtime values. |
 
-Environment variables set on the runtime: `INSPECTION_ENV`, `AWS_REGION`, `INSPECTION_MODEL_ID`, `INSPECTION_MODEL_REGION`, `INSPECTION_DB_HOST`, `INSPECTION_DB_SECRET_ARN`, `INSPECTION_LOG_LEVEL`, and `INSPECTION_MEMORY_ID` when `MemoryId` is set. No variable holds a password, token, or user identity.
+`ModelId` and `MemoryId` of the runtime stack are SSM-typed and read from the pre-runtime stack. `deploy.sh deploy runtime --param ModelId=...` and `--param MemoryId=...` are rejected with exit 2. Change them on `pre-runtime`, then deploy `runtime` again.
+
+Environment variables set on the runtime: `INSPECTION_ENV`, `AWS_REGION`, `INSPECTION_MODEL_ID`, `INSPECTION_MODEL_REGION`, `INSPECTION_DB_HOST`, `INSPECTION_DB_SECRET_ARN`, `INSPECTION_LOG_LEVEL`, and `INSPECTION_MEMORY_ID` when the memory-id SSM value is not `none`. No variable holds a password, token, or user identity.
 
 ## 3. SSM parameters
 
-Read by the stack (names passed as stack parameters, defaults use `demo`):
+Read by the pre-runtime stack (names passed as stack parameters, defaults use `demo`):
+
+| Path | Source stack |
+|---|---|
+| `/inspection-agent/<env>/network/runtime-security-group-id` | network |
+| `/inspection-agent/<env>/database/agent-ro-secret-arn` | database |
+
+Published by the pre-runtime stack:
+
+| Path | Value |
+|---|---|
+| `/inspection-agent/<env>/pre-runtime/artifact-bucket` | Artifact bucket name |
+| `/inspection-agent/<env>/pre-runtime/execution-role-arn` | Execution role ARN |
+| `/inspection-agent/<env>/pre-runtime/model-id` | The `ModelId` value |
+| `/inspection-agent/<env>/pre-runtime/memory-id` | The `MemoryId` value, or `none` when it is empty (an SSM String value cannot be empty) |
+
+Read by the runtime stack:
 
 | Path | Source stack |
 |---|---|
@@ -55,16 +90,18 @@ Read by the stack (names passed as stack parameters, defaults use `demo`):
 | `/inspection-agent/<env>/auth/app-client-id` | auth |
 | `/inspection-agent/<env>/database/endpoint` | database |
 | `/inspection-agent/<env>/database/agent-ro-secret-arn` | database |
+| `/inspection-agent/<env>/pre-runtime/artifact-bucket` | pre-runtime |
+| `/inspection-agent/<env>/pre-runtime/execution-role-arn` | pre-runtime |
+| `/inspection-agent/<env>/pre-runtime/model-id` | pre-runtime |
+| `/inspection-agent/<env>/pre-runtime/memory-id` | pre-runtime |
 
-Published by the stack:
+Published by the runtime stack:
 
-| Path | Value | Created |
-|---|---|---|
-| `/inspection-agent/<env>/runtime/artifact-bucket` | Artifact bucket name | Always |
-| `/inspection-agent/<env>/runtime/execution-role-arn` | Execution role ARN | Always |
-| `/inspection-agent/<env>/runtime/invocation-url` | URL pattern with the placeholder `{EncodedRuntimeArn}` | Always |
-| `/inspection-agent/<env>/runtime/runtime-arn` | Runtime ARN | Phase B only |
-| `/inspection-agent/<env>/runtime/runtime-id` | Runtime ID | Phase B only |
+| Path | Value |
+|---|---|
+| `/inspection-agent/<env>/runtime/runtime-arn` | Runtime ARN |
+| `/inspection-agent/<env>/runtime/runtime-id` | Runtime ID |
+| `/inspection-agent/<env>/runtime/invocation-url` | URL pattern with the placeholder `{EncodedRuntimeArn}` |
 
 ## 4. Deploy and update
 
@@ -80,21 +117,30 @@ read -rs "DEMO_PASSWORD_SUPERVISOR?Supervisor password: "; export DEMO_PASSWORD_
 
 ### First deploy
 
-The runtime stack deploys in two phases, because `AWS::BedrockAgentCore::Runtime` needs the code package to exist in S3 at create time, and the bucket belongs to the same stack.
-
 ```bash
 make deploy-network
 make deploy-auth
 make deploy-database
 make seed
-make deploy-runtime   # Phase A: bucket, role, SSM parameters. Exits 1 with "No code package found" by design.
-make package          # Build the zip and upload it to the artifact bucket.
-make deploy-runtime   # Phase B: creates the AgentRuntime.
+make deploy-pre-runtime   # Artifact bucket, execution role, model-id and memory-id SSM parameters.
+make package              # Build the zip and upload it to the artifact bucket.
+make deploy-runtime       # Creates the AgentRuntime from the package.
 ```
 
-The exit code 1 of Phase A is expected. The stack is in `CREATE_COMPLETE` with no `AgentRuntime`.
+`make deploy-runtime` stops with exit 1 before it changes anything when the pre-runtime stack is missing (it names `make deploy-pre-runtime`) or when no code package is found (it names `make package`).
 
-`make deploy` (`deploy-all`) runs the 10-step sequence, including both runtime phases and the package step. It needs all 8 templates in `infra/` and works only once they exist.
+`make deploy` (`deploy-all`) runs the 13-step sequence in the root README, including the package step and the memory update of both stacks. It needs all 9 templates in `infra/` and works only once they exist.
+
+### Adding the memory ID
+
+After `make deploy-memory`, pass the memory ID to the pre-runtime stack so the role may use it, then deploy the runtime so it reads the new `memory-id` SSM value:
+
+```bash
+scripts/deploy.sh deploy pre-runtime --param MemoryId=<memory-id>
+scripts/deploy.sh deploy runtime
+```
+
+`deploy-all` does both steps. Later `deploy pre-runtime` runs keep the current `MemoryId` unless you pass another. The runtime stack takes the new value from SSM, which CloudFormation resolves on each update. This resolution on update has not been verified yet (see section 10).
 
 ### Code update
 
@@ -135,7 +181,7 @@ The identity that runs `deploy.sh` needs:
 
 ## 7. Availability Zone check
 
-Before the first Phase B, confirm the private subnets are in supported AZs:
+Before the first `deploy runtime`, confirm the private subnets are in supported AZs:
 
 ```bash
 aws ec2 describe-subnets --subnet-ids <subnet-id> [<subnet-id> ...] \
@@ -148,9 +194,10 @@ Every value must be `usw2-az1`, `usw2-az2`, or `usw2-az3`.
 
 ```bash
 make delete-runtime
+make delete-pre-runtime
 ```
 
-`deploy.sh delete runtime` deletes every object version and delete marker in the artifact bucket before it deletes the stack. Only build artifacts are removed, and they can be rebuilt from source. To empty the bucket by hand, delete all versions and delete markers (a versioned bucket is not empty after a plain `aws s3 rm`):
+Delete `runtime` first. `deploy.sh delete pre-runtime` deletes every object version and delete marker in the artifact bucket before it deletes the stack, because a versioned bucket is not empty after a plain `aws s3 rm`. Only build artifacts are removed, and they can be rebuilt from source. `delete runtime` empties nothing. `make teardown` runs both in the right order. To empty the bucket by hand:
 
 ```bash
 aws s3api list-object-versions --bucket <bucket> --region us-west-2 \
@@ -159,11 +206,11 @@ aws s3api list-object-versions --bucket <bucket> --region us-west-2 \
 # The call accepts up to 1000 keys. Repeat until the listing is empty.
 ```
 
-To rebuild after a delete, run the three-command sequence: `make deploy-runtime`, `make package`, `make deploy-runtime`.
+To rebuild after a delete, run: `make deploy-pre-runtime`, `make package`, `make deploy-runtime`.
 
 ## 9. Global inference profiles
 
-A `ModelId` that starts with `global.` selects the global statement set. `deploy.sh` sets `ModelScope=global` from the prefix. The role then holds three Bedrock statements: the profile ARN with `aws:RequestedRegion`, the in-Region foundation model, and the Region-less foundation model (`arn:<partition>:bedrock:::foundation-model/<id>`). The empty Region and account in the last ARN are intentional. Each foundation model statement is bound to the profile by `bedrock:InferenceProfileArn`.
+A `ModelId` that starts with `global.` selects the global statement set in the pre-runtime stack. `deploy.sh` sets `ModelScope=global` from the prefix. The role then holds three Bedrock statements: the profile ARN with `aws:RequestedRegion`, the in-Region foundation model, and the Region-less foundation model (`arn:<partition>:bedrock:::foundation-model/<id>`). The empty Region and account in the last ARN are intentional. Each foundation model statement is bound to the profile by `bedrock:InferenceProfileArn`.
 
 - A global profile can route requests to Regions outside the US. The data in this project is synthetic.
 - An Organizations service control policy that denies by `aws:RequestedRegion` must allow `unspecified` for the execution role. Otherwise global inference fails.
@@ -171,7 +218,18 @@ A `ModelId` that starts with `global.` selects the global statement set. `deploy
 
 ## 10. Manual verification results
 
-Run on 2026-11-24 in us-west-2 with `Env=demo`. No automated tests exist for this stack. Each row was checked by hand.
+Run on 2026-11-24 in us-west-2 with `Env=demo`. No automated tests exist for these stacks. Each row was checked by hand.
+
+These results were recorded on the earlier single-stack layout, with one `runtime` stack and a two-phase deploy (the rows call the phases Phase A and Phase B). The split into `pre-runtime` and `runtime` was made afterwards.
+
+The split layout was first deployed on 2026-11-24, after the old single `runtime` stack was emptied and deleted:
+- `make deploy-pre-runtime`: the stack was created. It published `artifact-bucket`, `execution-role-arn`, `model-id` (the `us.` Haiku 4.5 profile) and `memory-id` (`none`).
+- `make package`: the package went to the new bucket with the same SHA-256 as before, and no false error line was printed.
+- `make deploy-runtime`: the stack was created and published `runtime-arn`, `runtime-id` and `invocation-url`. The runtime reached `READY` with the same package key and the 7 expected environment variables, with no `INSPECTION_MEMORY_ID`.
+- A supervisor invoke returned HTTP 200 from the `get_lot` tool.
+- No stray `ERROR ... line N` lines appeared in the deploy or delete output.
+
+Still open on the split layout: the `memory-id` update once a memory stack exists, a code update, and teardown of `pre-runtime` with bucket emptying.
 
 | Step | Check | Result |
 |---|---|---|
@@ -194,7 +252,4 @@ These are recorded, not fixed.
    - Demo question 2 gives out-of-tolerance counts but not the values 25.022, 25.021, and 25.024.
    - Demo question 3 says the lot was accepted, although IR-2025-0024 is submitted with no disposition. It also does not name the recheck as the next step.
    - This is system prompt behavior. A later spec covers it.
-2. Cosmetic noise in the scripts. Both scripts work and exit 0.
-   - `deploy.sh` prints `ERROR ... (line 79/184)` lines. The ERR trap fires inside `$(...)` subshells when a lookup returns not found.
-   - `package-agent.sh` prints `failed during: check for existing object` when `head-object` returns 404 for a new key.
-3. The runtime logs a harmless urllib3 `NotOpenSSLWarning`, because Python uses AWS-LC FIPS.
+2. The runtime logs a harmless urllib3 `NotOpenSSLWarning`, because Python uses AWS-LC FIPS.

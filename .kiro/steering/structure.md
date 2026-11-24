@@ -21,13 +21,14 @@ The shared core, the agent, the MCP server, the UI, and the infrastructure live 
 
 ## Infrastructure templates
 
-`infra/` holds exactly one CloudFormation template per Component, 8 templates in total. No Component has more than one template.
+`infra/` holds exactly one CloudFormation template per Component, 9 templates in total. No Component has more than one template.
 
 File naming rule: `infra/<component>.yaml`
 
 - `infra/network.yaml`
 - `infra/auth.yaml`
 - `infra/database.yaml`
+- `infra/pre-runtime.yaml`
 - `infra/runtime.yaml`
 - `infra/memory.yaml`
 - `infra/observability.yaml`
@@ -47,7 +48,7 @@ Example: `/inspection-agent/demo/memory/memory-id`
 ## Placeholders
 
 - `<env>`: the value of the `Env` parameter. It is 1 to 10 characters, starts with a lowercase letter, and contains only lowercase letters and digits (pattern `^[a-z][a-z0-9]{0,9}$`). The default is `demo`. See `docs/cloudformation-conventions.md`.
-- `<component>`: one of `network`, `auth`, `database`, `runtime`, `memory`, `observability`, `ui`, `mcp`. No other value is allowed.
+- `<component>`: one of `network`, `auth`, `database`, `pre-runtime`, `runtime`, `memory`, `observability`, `ui`, `mcp`. No other value is allowed.
 - `<NN>`: a two-digit, zero-padded number from `01` to `99`.
 - `<slug>`: lowercase letters, digits, and hyphens only.
 - `<key>`: lowercase letters, digits, and hyphens only.

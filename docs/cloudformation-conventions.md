@@ -100,7 +100,7 @@ regions:
 
 ## Rule 8: Stack names
 
-Every stack is deployed with the Stack_Name `inspection-agent-<env>-<component>`. `<env>` is the value of the Env parameter. `<component>` contains only lowercase letters, digits, and hyphens and is one of the 8 Component names.
+Every stack is deployed with the Stack_Name `inspection-agent-<env>-<component>`. `<env>` is the value of the Env parameter. `<component>` contains only lowercase letters, digits, and hyphens and is one of the 9 Component names.
 
 ```yaml
 # Deployed as: inspection-agent-<env>-<component>
