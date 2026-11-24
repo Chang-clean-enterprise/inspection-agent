@@ -40,7 +40,8 @@ LOCATION_FILE="$BUILD_DIR/package-location.env"
 REQUIREMENTS="src/inspection_agent/requirements.txt"
 
 CURRENT_STEP="startup"
-trap 'echo "package-agent.sh failed during: $CURRENT_STEP (line $LINENO)" >&2' ERR
+# A failure inside $(...) is handled by the caller, so only the main shell reports.
+trap '[ "${BASH_SUBSHELL:-0}" -gt 0 ] || echo "package-agent.sh failed during: $CURRENT_STEP (line $LINENO)" >&2' ERR
 
 usage() {
   cat >&2 <<EOF
@@ -99,14 +100,14 @@ cd "$REPO_ROOT"
 # --- Artifact bucket --------------------------------------------------------
 
 CURRENT_STEP="read artifact bucket parameter"
-BUCKET_PARAM="/inspection-agent/$ENV/runtime/artifact-bucket"
+BUCKET_PARAM="/inspection-agent/$ENV/pre-runtime/artifact-bucket"
 if ! BUCKET=$(aws ssm get-parameter \
   --region "$REGION" \
   --name "$BUCKET_PARAM" \
   --query Parameter.Value \
   --output text 2>/dev/null) || [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
   echo "Artifact bucket not found (SSM parameter $BUCKET_PARAM)." >&2
-  echo "Deploy the runtime stack first: scripts/deploy.sh --env $ENV deploy runtime" >&2
+  echo "Deploy the pre-runtime stack first: make deploy-pre-runtime ENV=$ENV REGION=$REGION" >&2
   exit 1
 fi
 
@@ -239,15 +240,30 @@ KEY="code/$SHA256.zip"
 
 CURRENT_STEP="check for existing object"
 VERSION_ID=""
+# A 404 from head-object is the expected result for a new key, not an error. Any other
+# failure (for example access denied) stops the script. The command runs in a context
+# that the ERR trap ignores, and its stderr is captured to tell the two cases apart.
+HEAD_ERR_FILE=$(mktemp "${TMPDIR:-/tmp}/package-head.XXXXXX")
 if VERSION_ID=$(aws s3api head-object \
   --region "$REGION" \
   --bucket "$BUCKET" \
   --key "$KEY" \
   --expected-bucket-owner "$ACCOUNT_ID" \
   --query VersionId \
-  --output text 2>/dev/null); then
+  --output text 2>"$HEAD_ERR_FILE"); then
+  rm -f "$HEAD_ERR_FILE"
   echo "Object $KEY already exists. Upload skipped."
 else
+  HEAD_ERR=$(cat "$HEAD_ERR_FILE")
+  rm -f "$HEAD_ERR_FILE"
+  VERSION_ID=""
+  case "$HEAD_ERR" in
+    *"(404)"* | *"Not Found"*) ;;
+    *)
+      echo "$HEAD_ERR" >&2
+      die "Could not check for an existing object $KEY in $BUCKET."
+      ;;
+  esac
   CURRENT_STEP="upload package"
   VERSION_ID=$(aws s3api put-object \
     --region "$REGION" \
