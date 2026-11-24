@@ -1,0 +1,556 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: inspection-agent runtime stack. AgentCore Runtime from an S3 code package, artifact bucket, and execution role.
+
+Parameters:
+  Env:
+    Type: String
+    Description: Deployment environment name. Part of every stack name and SSM parameter path.
+    Default: demo
+    AllowedPattern: ^[a-z][a-z0-9]{0,9}$
+  ModelId:
+    Type: String
+    Description: Bedrock inference profile ID. Only geographic (us.) and global (global.) profile IDs are accepted. Bare foundation model IDs and other prefixes are rejected.
+    Default: us.anthropic.claude-haiku-4-5-20251001-v1:0
+    AllowedPattern: ^(us|global)\.[a-z0-9-]+\.[a-z0-9][a-z0-9:_-]*$
+  ModelScope:
+    Type: String
+    Description: Scope of the inference profile in ModelId. Set by scripts/deploy.sh from the ModelId prefix. Selects the IAM statement set.
+    Default: us
+    AllowedValues:
+      - us
+      - global
+  IdleRuntimeSessionTimeout:
+    Type: Number
+    Description: Seconds of inactivity before a runtime session ends. 60 to 28800. The AgentCore service validates this value against MaxLifetime.
+    Default: 900
+    MinValue: 60
+    MaxValue: 28800
+  MaxLifetime:
+    Type: Number
+    Description: Maximum lifetime in seconds of a runtime session. 60 to 28800.
+    Default: 28800
+    MinValue: 60
+    MaxValue: 28800
+  LogLevel:
+    Type: String
+    Description: Log level of the agent code.
+    Default: INFO
+    AllowedValues:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+  MemoryId:
+    Type: String
+    Description: AgentCore memory ID. Empty until the memory stack exists.
+    Default: ""
+    AllowedPattern: ^$|^[a-zA-Z][a-zA-Z0-9_-]{0,99}-[a-zA-Z0-9]{10}$
+  PackageObjectKey:
+    Type: String
+    Description: S3 object key of the code package in the artifact bucket. The value none means no package yet, so the runtime is not created.
+    Default: none
+    AllowedPattern: ^(none|code/[A-Za-z0-9._-]{1,200})$
+  PackageObjectVersion:
+    Type: String
+    Description: S3 object version ID of the code package. The value none means no package yet, so the runtime is not created.
+    Default: none
+    AllowedPattern: ^(none|[A-Za-z0-9._-]{3,1024})$
+  PlatformVersion:
+    Type: String
+    Description: AgentCore Runtime platform version. Pinned because the service default differs between sources.
+    Default: V1
+    AllowedValues:
+      - V1
+      - V2
+  EnableS3ReadFallback:
+    Type: String
+    Description: Fallback switch. When true, the execution role may read the code package from the artifact bucket. Enable only if the first deploy shows the role needs it.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  EnableEniFallback:
+    Type: String
+    Description: Fallback switch. When true, the execution role gets network interface permissions. Enable only if the first deploy shows the role needs them.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  PrivateSubnetIds:
+    Type: AWS::SSM::Parameter::Value<List<String>>
+    Description: SSM parameter name that holds the private subnet IDs published by the network stack.
+    Default: /inspection-agent/demo/network/private-subnet-ids
+  RuntimeSecurityGroupId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the runtime security group ID published by the network stack.
+    Default: /inspection-agent/demo/network/runtime-security-group-id
+  DiscoveryUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the Cognito OpenID discovery URL published by the auth stack.
+    Default: /inspection-agent/demo/auth/discovery-url
+  AppClientId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the Cognito app client ID published by the auth stack.
+    Default: /inspection-agent/demo/auth/app-client-id
+  DbEndpoint:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the database endpoint published by the database stack.
+    Default: /inspection-agent/demo/database/endpoint
+  DbSecretArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the read-only database secret ARN published by the database stack.
+    Default: /inspection-agent/demo/database/agent-ro-secret-arn
+
+Rules:
+  # Both package parameters are none (Phase A), or both hold real values (Phase B).
+  PackageBothOrNeither:
+    Assertions:
+      - Assert: !Or
+          - !And
+            - !Equals [!Ref PackageObjectKey, none]
+            - !Equals [!Ref PackageObjectVersion, none]
+          - !And
+            - !Not [!Equals [!Ref PackageObjectKey, none]]
+            - !Not [!Equals [!Ref PackageObjectVersion, none]]
+        AssertDescription: PackageObjectKey and PackageObjectVersion must both be none, or both be set.
+
+Conditions:
+  HasPackage: !Not [!Equals [!Ref PackageObjectKey, none]]
+  HasMemory: !Not [!Equals [!Ref MemoryId, ""]]
+  IsGlobalModel: !Equals [!Ref ModelScope, global]
+  IsGeoModel: !Not [!Equals [!Ref ModelScope, global]]
+  UseS3ReadFallback: !Equals [!Ref EnableS3ReadFallback, "true"]
+  UseEniFallback: !Equals [!Ref EnableEniFallback, "true"]
+
+Mappings:
+  # Destination Regions of the geographic us. inference profile, stored as a geography
+  # plus a suffix so that no literal Region name appears in the template.
+  ProfileRoutes:
+    us:
+      Geo: us
+      Region1: east-1
+      Region2: east-2
+      Region3: west-2
+
+Resources:
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  ArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource:
+              - !GetAtt ArtifactBucket.Arn
+              - !Sub ${ArtifactBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub inspection-agent-${Env}-runtime-exec
+      Description: Execution role of the inspection-agent AgentCore runtime.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AgentCoreAssumeRole
+            Effect: Allow
+            Principal:
+              Service: bedrock-agentcore.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:runtime/inspection_agent_${Env}-*
+      Policies:
+        - PolicyName: runtime-execution
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: InvokeProfile
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${ModelId}
+                Condition: !If
+                  - IsGlobalModel
+                  - StringEquals:
+                      aws:RequestedRegion: !Ref AWS::Region
+                  - !Ref AWS::NoValue
+              - !If
+                - IsGeoModel
+                - Sid: InvokeFoundationModelsGeo
+                  Effect: Allow
+                  Action:
+                    - bedrock:InvokeModel
+                    - bedrock:InvokeModelWithResponseStream
+                  Resource:
+                    - !Sub
+                      - arn:${AWS::Partition}:bedrock:${Geo}-${Suffix}::foundation-model/${FoundationModelId}
+                      - Geo: !FindInMap [ProfileRoutes, us, Geo]
+                        Suffix: !FindInMap [ProfileRoutes, us, Region1]
+                        FoundationModelId: !Join
+                          - "."
+                          - - !Select [1, !Split [".", !Ref ModelId]]
+                            - !Select [2, !Split [".", !Ref ModelId]]
+                    - !Sub
+                      - arn:${AWS::Partition}:bedrock:${Geo}-${Suffix}::foundation-model/${FoundationModelId}
+                      - Geo: !FindInMap [ProfileRoutes, us, Geo]
+                        Suffix: !FindInMap [ProfileRoutes, us, Region2]
+                        FoundationModelId: !Join
+                          - "."
+                          - - !Select [1, !Split [".", !Ref ModelId]]
+                            - !Select [2, !Split [".", !Ref ModelId]]
+                    - !Sub
+                      - arn:${AWS::Partition}:bedrock:${Geo}-${Suffix}::foundation-model/${FoundationModelId}
+                      - Geo: !FindInMap [ProfileRoutes, us, Geo]
+                        Suffix: !FindInMap [ProfileRoutes, us, Region3]
+                        FoundationModelId: !Join
+                          - "."
+                          - - !Select [1, !Split [".", !Ref ModelId]]
+                            - !Select [2, !Split [".", !Ref ModelId]]
+                  Condition:
+                    StringEquals:
+                      bedrock:InferenceProfileArn: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${ModelId}
+                - !Ref AWS::NoValue
+              - !If
+                - IsGlobalModel
+                - Sid: InvokeFoundationModelInRegion
+                  Effect: Allow
+                  Action:
+                    - bedrock:InvokeModel
+                    - bedrock:InvokeModelWithResponseStream
+                  Resource: !Sub
+                    - arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/${FoundationModelId}
+                    - FoundationModelId: !Join
+                        - "."
+                        - - !Select [1, !Split [".", !Ref ModelId]]
+                          - !Select [2, !Split [".", !Ref ModelId]]
+                  Condition:
+                    StringEquals:
+                      aws:RequestedRegion: !Ref AWS::Region
+                      bedrock:InferenceProfileArn: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${ModelId}
+                - !Ref AWS::NoValue
+              - !If
+                - IsGlobalModel
+                # The empty Region and account in this ARN are intentional. The global
+                # inference profile routes to a Region-less foundation model ARN, and the
+                # request Region is evaluated as "unspecified".
+                - Sid: InvokeFoundationModelGlobal
+                  Effect: Allow
+                  Action:
+                    - bedrock:InvokeModel
+                    - bedrock:InvokeModelWithResponseStream
+                  Resource: !Sub
+                    - arn:${AWS::Partition}:bedrock:::foundation-model/${FoundationModelId}
+                    - FoundationModelId: !Join
+                        - "."
+                        - - !Select [1, !Split [".", !Ref ModelId]]
+                          - !Select [2, !Split [".", !Ref ModelId]]
+                  Condition:
+                    StringEquals:
+                      aws:RequestedRegion: unspecified
+                      bedrock:InferenceProfileArn: !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${ModelId}
+                - !Ref AWS::NoValue
+              - Sid: ReadOnlySecret
+                Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref DbSecretArn
+              - Sid: LogGroup
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DescribeLogStreams
+                  - logs:PutResourcePolicy
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/inspection_agent_${Env}-*
+              - Sid: LogStreams
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/inspection_agent_${Env}-*:log-stream:*
+              # logs:DescribeLogGroups cannot be limited to one log group, so the resource is every log group in the account and Region.
+              - Sid: DescribeLogGroups
+                Effect: Allow
+                Action:
+                  - logs:DescribeLogGroups
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+              # X-Ray does not support resource-level permissions for these actions.
+              - Sid: Tracing
+                Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                Resource: "*"
+              # cloudwatch:PutMetricData has no resource-level permissions. The namespace condition limits it.
+              - Sid: Metrics
+                Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: bedrock-agentcore
+              - !If
+                - HasMemory
+                - Sid: Memory
+                  Effect: Allow
+                  Action:
+                    - bedrock-agentcore:CreateEvent
+                    - bedrock-agentcore:GetEvent
+                    - bedrock-agentcore:ListEvents
+                    - bedrock-agentcore:ListSessions
+                    - bedrock-agentcore:RetrieveMemoryRecords
+                    - bedrock-agentcore:ListMemoryRecords
+                    - bedrock-agentcore:GetMemoryRecord
+                  Resource: !Sub arn:${AWS::Partition}:bedrock-agentcore:${AWS::Region}:${AWS::AccountId}:memory/${MemoryId}
+                - !Ref AWS::NoValue
+              # Fallback only. Present when EnableS3ReadFallback is true.
+              - !If
+                - UseS3ReadFallback
+                - Sid: PackageRead
+                  Effect: Allow
+                  Action:
+                    - s3:GetObject
+                    - s3:GetObjectVersion
+                  Resource: !Sub ${ArtifactBucket.Arn}/code/*
+                - !Ref AWS::NoValue
+              # Fallback only. Present when EnableEniFallback is true.
+              - !If
+                - UseEniFallback
+                - Sid: EniCreateInSubnetAndGroup
+                  Effect: Allow
+                  Action:
+                    - ec2:CreateNetworkInterface
+                  Resource:
+                    # CloudFormation cannot build one ARN per subnet from a list parameter without a transform.
+                    - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
+                    - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/${RuntimeSecurityGroupId}
+                - !Ref AWS::NoValue
+              - !If
+                - UseEniFallback
+                - Sid: EniCreateTagged
+                  Effect: Allow
+                  Action:
+                    - ec2:CreateNetworkInterface
+                  Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                  Condition:
+                    StringEquals:
+                      aws:RequestTag/AmazonBedrockAgentCoreManaged: "true"
+                    ForAllValues:StringEquals:
+                      aws:TagKeys:
+                        - AmazonBedrockAgentCoreManaged
+                - !Ref AWS::NoValue
+              - !If
+                - UseEniFallback
+                - Sid: EniTagOnCreate
+                  Effect: Allow
+                  Action:
+                    - ec2:CreateTags
+                  Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                  Condition:
+                    StringEquals:
+                      ec2:CreateAction: CreateNetworkInterface
+                - !Ref AWS::NoValue
+              - !If
+                - UseEniFallback
+                - Sid: EniManageManagedOnly
+                  Effect: Allow
+                  Action:
+                    - ec2:DeleteNetworkInterface
+                    - ec2:AssignPrivateIpAddresses
+                    - ec2:UnassignPrivateIpAddresses
+                    - ec2:CreateNetworkInterfacePermission
+                  Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                  Condition:
+                    StringEquals:
+                      aws:ResourceTag/AmazonBedrockAgentCoreManaged: "true"
+                - !Ref AWS::NoValue
+              - !If
+                - UseEniFallback
+                - Sid: EniReadVpcGroups
+                  Effect: Allow
+                  Action:
+                    - ec2:GetSecurityGroupsForVPC
+                  Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc/*
+                - !Ref AWS::NoValue
+              # EC2 Describe actions do not support resource-level permissions.
+              - !If
+                - UseEniFallback
+                - Sid: EniDescribe
+                  Effect: Allow
+                  Action:
+                    - ec2:DescribeNetworkInterfaces
+                    - ec2:DescribeSecurityGroups
+                    - ec2:DescribeSubnets
+                    - ec2:DescribeVpcs
+                  Resource: "*"
+                - !Ref AWS::NoValue
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  # Created only when a code package is configured (Phase B). Phase A has no runtime.
+  AgentRuntime:
+    Type: AWS::BedrockAgentCore::Runtime
+    Condition: HasPackage
+    Properties:
+      AgentRuntimeName: !Sub inspection_agent_${Env}
+      Description: inspection-agent runtime. Strands agent from an S3 code package.
+      RoleArn: !GetAtt ExecutionRole.Arn
+      PlatformVersion: !Ref PlatformVersion
+      AgentRuntimeArtifact:
+        CodeConfiguration:
+          Runtime: PYTHON_3_12
+          EntryPoint:
+            - main.py
+          Code:
+            S3:
+              Bucket: !Ref ArtifactBucket
+              Prefix: !Ref PackageObjectKey
+              VersionId: !Ref PackageObjectVersion
+      NetworkConfiguration:
+        NetworkMode: VPC
+        NetworkModeConfig:
+          Subnets: !Ref PrivateSubnetIds
+          SecurityGroups:
+            - !Ref RuntimeSecurityGroupId
+      AuthorizerConfiguration:
+        CustomJWTAuthorizer:
+          DiscoveryUrl: !Ref DiscoveryUrl
+          AllowedClients:
+            - !Ref AppClientId
+      RequestHeaderConfiguration:
+        RequestHeaderAllowlist:
+          - Authorization
+      LifecycleConfiguration:
+        IdleRuntimeSessionTimeout: !Ref IdleRuntimeSessionTimeout
+        MaxLifetime: !Ref MaxLifetime
+      EnvironmentVariables:
+        INSPECTION_ENV: !Ref Env
+        AWS_REGION: !Ref AWS::Region
+        INSPECTION_MODEL_ID: !Ref ModelId
+        INSPECTION_MODEL_REGION: !Ref AWS::Region
+        INSPECTION_DB_HOST: !Ref DbEndpoint
+        INSPECTION_DB_SECRET_ARN: !Ref DbSecretArn
+        INSPECTION_LOG_LEVEL: !Ref LogLevel
+        INSPECTION_MEMORY_ID: !If
+          - HasMemory
+          - !Ref MemoryId
+          - !Ref AWS::NoValue
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  ArtifactBucketParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/runtime/artifact-bucket
+      Type: String
+      Value: !Ref ArtifactBucket
+      Description: Name of the S3 bucket that holds the agent code packages.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  ExecutionRoleArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/runtime/execution-role-arn
+      Type: String
+      Value: !GetAtt ExecutionRole.Arn
+      Description: ARN of the AgentCore runtime execution role.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  # CloudFormation has no URL-encode function. The placeholder {EncodedRuntimeArn} stands for the URL-encoded runtime ARN.
+  InvocationUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/runtime/invocation-url
+      Type: String
+      Value: !Sub https://bedrock-agentcore.${AWS::Region}.amazonaws.com/runtimes/{EncodedRuntimeArn}/invocations?qualifier=DEFAULT
+      Description: Invocation URL pattern of the runtime. Replace {EncodedRuntimeArn} with the URL-encoded runtime ARN.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  RuntimeArnParameter:
+    Type: AWS::SSM::Parameter
+    Condition: HasPackage
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/runtime/runtime-arn
+      Type: String
+      Value: !GetAtt AgentRuntime.AgentRuntimeArn
+      Description: ARN of the AgentCore runtime.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  RuntimeIdParameter:
+    Type: AWS::SSM::Parameter
+    Condition: HasPackage
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/runtime/runtime-id
+      Type: String
+      Value: !GetAtt AgentRuntime.AgentRuntimeId
+      Description: ID of the AgentCore runtime.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+Outputs:
+  ArtifactBucketName:
+    Description: Name of the S3 bucket that holds the agent code packages.
+    Value: !Ref ArtifactBucket
+  ExecutionRoleArn:
+    Description: ARN of the AgentCore runtime execution role.
+    Value: !GetAtt ExecutionRole.Arn
+  InvocationUrlPattern:
+    Description: Invocation URL pattern of the runtime. Replace {EncodedRuntimeArn} with the URL-encoded runtime ARN.
+    Value: !Sub https://bedrock-agentcore.${AWS::Region}.amazonaws.com/runtimes/{EncodedRuntimeArn}/invocations?qualifier=DEFAULT
+  AgentRuntimeArn:
+    Condition: HasPackage
+    Description: ARN of the AgentCore runtime.
+    Value: !GetAtt AgentRuntime.AgentRuntimeArn
+  AgentRuntimeId:
+    Condition: HasPackage
+    Description: ID of the AgentCore runtime.
+    Value: !GetAtt AgentRuntime.AgentRuntimeId
