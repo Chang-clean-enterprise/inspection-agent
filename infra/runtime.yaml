@@ -99,6 +99,7 @@ Resources:
         CodeConfiguration:
           Runtime: PYTHON_3_12
           EntryPoint:
+            - opentelemetry-instrument
             - main.py
           Code:
             S3:
@@ -134,6 +135,28 @@ Resources:
           - HasMemory
           - !Ref MemoryId
           - !Ref AWS::NoValue
+        UNIFIED_TRACES_DESTINATION_ENABLED: "true"
+        OTEL_SERVICE_NAME: !Sub inspection-agent-${Env}
+        OTEL_RESOURCE_ATTRIBUTES: !Sub deployment.environment.name=${Env}
+        # Both privacy variables below are template literals, not parameters, and deliberately so.
+        # `aws cloudformation deploy` reuses an existing stack's stored parameter value for any
+        # parameter it is not explicitly given, so raising a parameter Default has no effect on a
+        # stack that already exists. Spec 11 task 6.4 hit exactly that: the redact list was widened
+        # in the template, the runtime redeployed, and the old list stayed live, silently. A privacy
+        # guarantee must not be able to go stale that way. To narrow redaction, edit this list.
+        #
+        # Keys replaced with REDACTED in span attributes, span events and span links, in process,
+        # before export. tool.result is here because Strands puts the raw tool result on the
+        # gen_ai.choice event of the execute_event_loop_cycle span; it was the last unredacted
+        # content in the privacy review and it carried inspector notes text verbatim.
+        AWS_REDACT_SPAN_ATTRIBUTES: gen_ai.input.messages,gen_ai.output.messages,gen_ai.prompt,gen_ai.completion,content,message,tool.result,tool.input
+        # Not a parameter, deliberately: this is a privacy guarantee, not a tuning knob.
+        # AWS_REDACT_SPAN_ATTRIBUTES only reaches span attributes, span events and span links. The
+        # ADOT botocore bedrock-runtime instrumentation also emits the model payloads as separate
+        # OTLP *log records*, which land in the otel-rt-logs stream and which no span redaction can
+        # touch. Spec 11 task 6.4 found inspector notes text in three such records. This is the
+        # standard OpenTelemetry GenAI switch that stops that content being captured at all.
+        OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: "false"
       Tags:
         Project: inspection-agent
         Env: !Ref Env
