@@ -12,7 +12,7 @@ TEMPLATES := $(wildcard infra/*.yaml infra/*.yml infra/*.json)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help deploy teardown seed package lint
+.PHONY: help deploy teardown seed package lint memory-inspect
 
 help:
 	@echo "inspection-agent entry point"
@@ -26,6 +26,7 @@ help:
 	@echo "  make seed                  Load the schema and seed data into the database"
 	@echo "  make package               Build and upload the agent code package"
 	@echo "  make lint                  Run cfn-lint on infra/ templates, then ruff check"
+	@echo "  make memory-inspect ARGS=\"...\"  Inspect one actor's AgentCore Memory (ARGS: --persona or --actor, see scripts/memory-inspect.sh --help)"
 	@echo ""
 	@echo "First runtime deploy order: make deploy-pre-runtime, make package, make deploy-runtime"
 	@echo "Code update: make package, make deploy-runtime"
@@ -55,6 +56,9 @@ seed:
 
 package:
 	$(PACKAGE)
+
+memory-inspect:
+	scripts/memory-inspect.sh --env "$(ENV)" --region "$(REGION)" $(ARGS)
 
 lint:
 ifneq ($(strip $(TEMPLATES)),)

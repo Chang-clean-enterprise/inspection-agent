@@ -62,6 +62,8 @@ Every parameter has a constraint. Pass overrides with `scripts/deploy.sh deploy 
 
 Environment variables set on the runtime: `INSPECTION_ENV`, `AWS_REGION`, `INSPECTION_MODEL_ID`, `INSPECTION_MODEL_REGION`, `INSPECTION_DB_HOST`, `INSPECTION_DB_SECRET_ARN`, `INSPECTION_LOG_LEVEL`, and `INSPECTION_MEMORY_ID` when the memory-id SSM value is not `none`. No variable holds a password, token, or user identity.
 
+`INSPECTION_MEMORY_ID` is read by `src/inspection_agent/config.py` since spec 10. A value that is absent, empty, or `none` disables memory and the agent behaves as it did before that spec. A malformed value raises at container start, deliberately, so a typo surfaces before a demo rather than during one.
+
 ## 3. SSM parameters
 
 Read by the pre-runtime stack (names passed as stack parameters, defaults use `demo`):
@@ -140,7 +142,11 @@ scripts/deploy.sh deploy pre-runtime --param MemoryId=<memory-id>
 scripts/deploy.sh deploy runtime
 ```
 
-`deploy-all` does both steps. Later `deploy pre-runtime` runs keep the current `MemoryId` unless you pass another. The runtime stack takes the new value from SSM, which CloudFormation resolves on each update. This resolution on update has not been verified yet (see section 10).
+Run `make package` between the two commands whenever the agent code changed, otherwise the runtime gets the new memory ID but keeps the old code.
+
+`deploy-all` does both steps. Later `deploy pre-runtime` runs keep the current `MemoryId` unless you pass another. The runtime stack takes the new value from SSM, which CloudFormation resolves on each update. **This resolution on update was verified on 2026-11-25** (see section 10): after the memory stack was deployed and `pre-runtime` was updated, the runtime stack's `MemoryId` `ResolvedValue` equalled the new memory ID, and `INSPECTION_MEMORY_ID` appeared in the runtime environment.
+
+See [memory.md](memory.md) for the memory stack itself, the namespaces, the extraction delay, and `scripts/memory-inspect.sh`.
 
 ### Code update
 
@@ -229,7 +235,14 @@ The split layout was first deployed on 2026-11-24, after the old single `runtime
 - A supervisor invoke returned HTTP 200 from the `get_lot` tool.
 - No stray `ERROR ... line N` lines appeared in the deploy or delete output.
 
-Still open on the split layout: the `memory-id` update once a memory stack exists, a code update, and teardown of `pre-runtime` with bucket emptying.
+Still open on the split layout: teardown of `pre-runtime` with bucket emptying.
+
+Closed on 2026-11-25 by spec 10 (full notes in `.kiro/specs/10-agentcore-memory/tasks.md`):
+
+- **The `memory-id` update once a memory stack exists.** `make deploy-memory`, then `deploy pre-runtime --param MemoryId=<memory-id>`, then `deploy runtime`. The pre-runtime stack parameter matched the SSM value, and the runtime stack's SSM-typed `MemoryId` had a `ResolvedValue` equal to the new ID, so CloudFormation does re-resolve `AWS::SSM::Parameter::Value<String>` on a stack update. The runtime then showed 8 environment variables including `INSPECTION_MEMORY_ID`.
+- **A code update on the split layout.** `make package` produced a new SHA-256 for changed source (three times across the spec), the runtime deployed it, and a fresh session picked up the new behavior. The extraction-delay and prompt-fix cycles exercised this repeatedly.
+
+Measured for the memory feature: long-term extraction took 50 seconds for `/facts/` and 71 seconds for `/summaries/`. Short-term events are available immediately. See [memory.md](memory.md) section 7 for the demo flow this implies.
 
 | Step | Check | Result |
 |---|---|---|

@@ -70,7 +70,10 @@ Every new spec starts in plan mode. No workflow or skill is used; keep it simple
 Agents and models:
 
 - Main session (planning, asking the user, AWS work): Opus 5. Managed settings pin the default model and `opusplan` is not available, so no project setting selects the model.
-- `explorer` (`.claude/agents/explorer.md`, Haiku, read-only): use it instead of the built-in Explore agent when planning or searching the repo.
+- `explorer` (`.claude/agents/explorer.md`, Haiku, read-only): use it for planning and for searching the repo.
+  - **Never use the built-in `Explore` agent.** The two names differ only by casing and both appear in the available-agents list, so the wrong one is easy to pick and nothing fails when you do: the built-in has no pinned model, inherits the main session's Opus 5, and carries a much wider tool set. The project agent is the lowercase `explorer`, pinned to Haiku, with only `Read`, `Grep` and `Glob`.
+  - Picking the wrong one is silent and expensive. On 2026-11-25 two spec-10 reconnaissance agents were launched as `Explore` and ran on Opus 5, costing about 180k subagent tokens for work that is grep and read.
+  - To check which model a subagent actually used, grep its transcript: `grep -o '"model":"[^"]*"' ~/.claude/projects/<project>/<session>/subagents/agent-*.jsonl | sort -u`. The agent definition's frontmatter shows what is configured; the transcript shows what ran.
 - `implementer` (`.claude/agents/implementer.md`, Sonnet): implements one `[implementer]` task at a time. It is configured as `sonnet`; the 1M-context variant is not verified for subagents.
 
 Spec location and naming (same convention as Kiro):

@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: inspection-agent memory stack. AgentCore Memory with short-term session events and two long-term strategies.
+
+Parameters:
+  Env:
+    Type: String
+    Description: Deployment environment name. Part of every stack name and SSM parameter path.
+    Default: demo
+    AllowedPattern: ^[a-z][a-z0-9]{0,9}$
+  EventExpiryDays:
+    Type: Number
+    Description: Number of days a short-term event is retained before expiry. 7 to 365.
+    Default: 30
+    MinValue: 7
+    MaxValue: 365
+
+Resources:
+  Memory:
+    Type: AWS::BedrockAgentCore::Memory
+    Properties:
+      Name: !Sub inspection_agent_${Env}
+      Description: Short-term and long-term memory for the inspection-agent, isolated per user.
+      EventExpiryDuration: !Ref EventExpiryDays
+      MemoryStrategies:
+        - SummaryMemoryStrategy:
+            Name: SessionSummary
+            NamespaceTemplates:
+              - /summaries/{actorId}/{sessionId}/
+        - SemanticMemoryStrategy:
+            Name: ActorFacts
+            NamespaceTemplates:
+              - /facts/{actorId}/
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  MemoryIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/memory/memory-id
+      Type: String
+      Value: !GetAtt Memory.MemoryId
+      Description: AgentCore Memory ID published for the pre-runtime and runtime stacks.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+Outputs:
+  MemoryId:
+    Description: AgentCore Memory ID. Same value as the SSM parameter memory-id.
+    Value: !GetAtt Memory.MemoryId
+  MemoryArn:
+    Description: AgentCore Memory ARN.
+    Value: !GetAtt Memory.MemoryArn
