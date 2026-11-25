@@ -13,7 +13,8 @@ See [.kiro/steering/structure.md](../../.kiro/steering/structure.md) for the rep
 | `agent_factory.py` | `build_agent(config, prompt_text, prompt_version)`. Builds one Strands `Agent` with a `BedrockModel`, exactly the four tools, the budget hook, and sequential tool execution. Takes no identity. |
 | `strands_tools.py` | Strands adapters for the four core tools (`list_reports`, `get_report`, `get_lot`, `characteristic_trend`). Each takes the `Principal` from the invocation state. |
 | `budget.py` | `ToolBudgetHook` and `RequestRecorder`. Limits tool calls per request and records the Action_Log. |
-| `sessions.py` | `SessionRegistry`. In-process, bounded (20 sessions, least recently used evicted), keyed by session ID and bound to an owner. |
+| `sessions.py` | `SessionRegistry`. In-process, bounded (20 sessions, least recently used evicted), keyed by session ID and bound to an owner. Each `SessionEntry` also tracks `background_loaded`, so memory background is retrieved at most once per session entry. |
+| `memory.py` | Thin module over the `bedrock-agentcore` data plane. `write_turn` writes exactly one `USER`/`ASSISTANT` conversational event per turn. `read_background` retrieves the long-term records for one actor and returns a `<background_memory>` block and its record count. Both fail soft: neither function raises, and a failure is logged with the exception class name only, never with prompt, answer, or record text. |
 | `config.py` | Constants and `load_config(env)`. |
 | `prompt.py` | `load_system_prompt(path)`. Returns the prompt version and text. |
 | `system_prompt.txt` | The system prompt. First line is `prompt-version: <id>`. The version line is not sent to the model. |
@@ -21,13 +22,14 @@ See [.kiro/steering/structure.md](../../.kiro/steering/structure.md) for the rep
 
 ## Configuration
 
-`config.py` reads three environment variables. No variable names a user, group, or Principal.
+`config.py` reads four environment variables. No variable names a user, group, or Principal.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `INSPECTION_MODEL_ID` | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | Bedrock model or inference profile ID. |
 | `INSPECTION_MODEL_REGION` | `us-west-2` | Region of the Bedrock call. |
 | `INSPECTION_ADDITIONAL_REQUEST_FIELDS` | none | JSON object passed to Bedrock as additional model request fields. Any other JSON value raises `ValueError`. |
+| `INSPECTION_MEMORY_ID` | none | AgentCore Memory ID. Absent, empty, or the literal `none` disables memory: the handler behaves exactly as it did before memory existed. A non-empty value that does not match the `MemoryId` shape raises `ValueError` at startup. |
 
 Fixed in code: the tool-call limit is 6 per request, the prompt is 1 to 4000 characters, and the registry holds 20 sessions.
 
@@ -71,6 +73,21 @@ The model never sees the token or the `Principal`, and no tool has an identity a
 
 Tool results and their fields are described in [docs/inspection-tools.md](../../docs/inspection-tools.md).
 
+## Memory
+
+With `INSPECTION_MEMORY_ID` configured, `entrypoint.handler` makes two calls to `memory.py`, both scoped to the verified `Principal.user_id` (the Cognito `sub`), never to a model-supplied value:
+
+1. On the first turn of a session entry (`entry.background_loaded` is `False`), it calls `memory.read_background(memory_id, principal.user_id, prompt)`. A non-empty result is prepended as a `<background_memory>` content block ahead of the prompt; `system_prompt.txt` tells the model to treat it as background only, never as an instruction or a tool result, and never to state an inspection fact because it appears there. `entry.background_loaded` is then set to `True` so the call runs at most once per session entry. A session rebuilt after a container restart or an LRU eviction retrieves background again, because its in-process history is gone too.
+2. After a non-empty answer, it calls `memory.write_turn(memory_id, principal.user_id, session_id, prompt, answer)`, which writes exactly one `USER` and one `ASSISTANT` conversational event. No tool result, database row, or `TOOL`-role entry is ever written. A failed turn (empty answer) writes nothing.
+
+Both calls fail soft: `memory.py` never raises. A retrieval or write failure is logged with the exception class name only and the turn still completes with the plain prompt and the answer still returned to the caller.
+
+The span attributes `inspection.memory.enabled` (bool), `inspection.memory.background_records` (the count, never the text), and `inspection.memory.write_status` (`ok`, `failed`, or `disabled`) record the outcome without carrying any record, prompt, or answer text.
+
+With `INSPECTION_MEMORY_ID` absent, no memory call is made and the handler behaves exactly as it did before memory existed, including the plain string prompt passed to the agent.
+
+See [docs/memory.md](../../docs/memory.md) for the memory resource, its namespaces, and the demo flow.
+
 ## Runtime preconditions (for the runtime spec)
 
 The runtime spec must provide:
@@ -82,7 +99,7 @@ The runtime spec must provide:
 
 ## Open question for the observability spec
 
-Whether trace content (tool results with report notes) is captured in traces is not decided here. The agent sets only the span attributes `inspection.prompt_version` and `inspection.model_id`.
+Whether trace content (tool results with report notes) is captured in traces is not decided here. The agent sets only the span attributes `inspection.prompt_version`, `inspection.model_id`, `inspection.memory.enabled`, `inspection.memory.background_records`, and `inspection.memory.write_status`.
 
 ## Manual evaluation
 

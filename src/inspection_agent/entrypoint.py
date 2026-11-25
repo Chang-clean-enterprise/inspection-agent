@@ -16,6 +16,7 @@ import uuid
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from opentelemetry import trace
 
+from . import memory
 from .agent_factory import build_agent
 from .budget import RequestRecorder
 from .config import MAX_PROMPT_CHARS, AgentConfig, load_config
@@ -106,11 +107,36 @@ def _parse_payload(payload: object) -> tuple[str, str | None] | None:
 
 
 def _set_span_attributes(prompt_version: str, model_id: str) -> None:
+    """Set the attributes known before the model call.
+
+    Called before the agent runs, so a failed invocation still carries the
+    prompt version and the model ID in its trace.
+    """
     try:
         span = trace.get_current_span()
         if span.is_recording():
             span.set_attribute("inspection.prompt_version", prompt_version)
             span.set_attribute("inspection.model_id", model_id)
+    except Exception:  # noqa: BLE001, S110
+        pass
+
+
+def _set_memory_span_attributes(
+    memory_enabled: bool,
+    background_records: int,
+    write_status: str,
+) -> None:
+    """Set the memory attributes, which are known only after the write.
+
+    The record count is a count. No record text, prompt text, or answer text
+    reaches a span attribute.
+    """
+    try:
+        span = trace.get_current_span()
+        if span.is_recording():
+            span.set_attribute("inspection.memory.enabled", memory_enabled)
+            span.set_attribute("inspection.memory.background_records", background_records)
+            span.set_attribute("inspection.memory.write_status", write_status)
     except Exception:  # noqa: BLE001, S110
         pass
 
@@ -147,15 +173,39 @@ def handler(payload, context):
 
         _set_span_attributes(prompt_version, config.model_id)
 
+        memory_id = config.memory_id
+        background = ""
+        record_count = 0
+
         recorder = RequestRecorder()
         with entry.lock:
+            if memory_id and not entry.background_loaded:
+                background, record_count = memory.read_background(
+                    memory_id, principal.user_id, prompt
+                )
+                entry.background_loaded = True
+
+            model_input = [{"text": background}, {"text": prompt}] if background else prompt
             result = entry.agent(
-                prompt,
+                model_input,
                 invocation_state={"principal": principal, "recorder": recorder},
             )
         answer = str(result).strip()
         if not answer:
             return ERROR_INTERNAL
+
+        write_status = "disabled"
+        if memory_id:
+            ok = memory.write_turn(memory_id, principal.user_id, session_id, prompt, answer)
+            write_status = "ok" if ok else "failed"
+            if not ok:
+                logger.warning("memory write failed")
+
+        _set_memory_span_attributes(
+            memory_enabled=bool(memory_id),
+            background_records=record_count,
+            write_status=write_status,
+        )
         return {"answer": answer, "actions": recorder.actions, "session_id": session_id}
     except Exception as exc:  # noqa: BLE001
         logger.error("invocation failed class=%s", type(exc).__name__)

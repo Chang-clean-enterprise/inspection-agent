@@ -29,6 +29,7 @@ class SessionEntry:
     agent: Agent
     owner: str
     lock: threading.Lock
+    background_loaded: bool = False
 
 
 class SessionRegistry:
