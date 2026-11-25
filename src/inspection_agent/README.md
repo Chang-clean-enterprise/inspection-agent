@@ -16,6 +16,7 @@ See [.kiro/steering/structure.md](../../.kiro/steering/structure.md) for the rep
 | `sessions.py` | `SessionRegistry`. In-process, bounded (20 sessions, least recently used evicted), keyed by session ID and bound to an owner. Each `SessionEntry` also tracks `background_loaded`, so memory background is retrieved at most once per session entry. |
 | `memory.py` | Thin module over the `bedrock-agentcore` data plane. `write_turn` writes exactly one `USER`/`ASSISTANT` conversational event per turn. `read_background` retrieves the long-term records for one actor and returns a `<background_memory>` block and its record count. Both fail soft: neither function raises, and a failure is logged with the exception class name only, never with prompt, answer, or record text. |
 | `config.py` | Constants and `load_config(env)`. |
+| `tracing.py` | `current_trace_id()`, `current_span_id()`, `xray_trace_id(hex_trace_id)`. Reads the current OpenTelemetry span context. Never raises, returns `""` when no span is recording or the ADOT distro is absent. |
 | `prompt.py` | `load_system_prompt(path)`. Returns the prompt version and text. |
 | `system_prompt.txt` | The system prompt. First line is `prompt-version: <id>`. The version line is not sent to the model. |
 | `requirements.txt` | Pins `strands-agents` and `bedrock-agentcore` on top of the core requirements. |
@@ -46,10 +47,12 @@ All other keys are ignored, including any that look like an identity (`user_id`,
 Success response:
 
 ```json
-{"answer": "string", "actions": [{"tool": "list_reports", "decision": "allowed", "row_count": 4}], "session_id": "string"}
+{"answer": "string", "actions": [{"tool": "list_reports", "decision": "allowed", "row_count": 4}], "session_id": "string", "trace_id": "string"}
 ```
 
 `actions` has one entry per executed tool call: tool name, decision (`allowed`, `restricted`, `forbidden`, or `null`), and row count. It holds no arguments, result data, or note text.
+
+`trace_id` is the 32-hex-digit OpenTelemetry trace ID of the current request, read through `tracing.current_trace_id()`. It is `""` when no span is recording (for example, a local run without the ADOT distro). `tracing.xray_trace_id(trace_id)` converts it to the form the CloudWatch trace view searches on. The four fixed error payloads below carry no `trace_id`; several are returned outside a recording span.
 
 Error payloads are fixed text, shaped `{"error": {"code": "...", "message": "..."}}`:
 
@@ -72,6 +75,10 @@ Error payloads are fixed text, shaped `{"error": {"code": "...", "message": "...
 The model never sees the token or the `Principal`, and no tool has an identity argument. A session is bound to the `sub` of the first caller, and another user gets `forbidden_session`.
 
 Tool results and their fields are described in [docs/inspection-tools.md](../../docs/inspection-tools.md).
+
+## Audit request context
+
+Once the session ID and the `Principal` are resolved, `handler` calls `inspection_core.audit.set_request_context(session_id=session_id, actor_id=principal.user_id)` and resets it in a `finally`, so a request can never leak its session ID or actor ID into the next one on a reused thread. `inspection_core.audit.emit` (called by every tool, inside `inspection_core.tools._run`) reads this context through a `contextvars.ContextVar` when the caller did not supply `session_id` or `actor_id` directly, so `inspection_core` never imports from `inspection_agent` and the model never supplies the identity as a tool argument. The handler also sets `inspection.session_id` on its own span alongside `inspection.prompt_version` and `inspection.model_id`, so the top-level span is filterable by session without opening a tool span.
 
 ## Memory
 
@@ -97,9 +104,9 @@ The runtime spec must provide:
 - The runtime ARN published at `/inspection-agent/<env>/runtime/runtime-arn`, which `scripts/invoke.sh` reads.
 - The `INSPECTION_*` variables, if the defaults need to change.
 
-## Open question for the observability spec
+## Tracing and span content
 
-Whether trace content (tool results with report notes) is captured in traces is not decided here. The agent sets only the span attributes `inspection.prompt_version`, `inspection.model_id`, `inspection.memory.enabled`, `inspection.memory.background_records`, and `inspection.memory.write_status`.
+With the ADOT distro present and `opentelemetry-instrument` as the entry point (see the observability spec, issue #11), the agent emits real spans: the runtime's own `AgentCore.Runtime.Invoke` span, a Strands `invoke_agent` span, one `chat` span per model call, and one `execute_tool <name>` span per tool call. The code here sets only the span attributes `inspection.prompt_version`, `inspection.model_id`, `inspection.session_id`, `inspection.memory.enabled`, `inspection.memory.background_records`, and `inspection.memory.write_status`; `inspection_core.audit.emit` sets the rest (see [`../inspection_core/README.md`](../inspection_core/README.md)). Model prompts, model answers and tool payloads (which carry inspector notes text) are stripped from every span, span event and span link by the runtime's `AWS_REDACT_SPAN_ATTRIBUTES` environment variable, set in `infra/runtime.yaml`. This code does not redact anything itself; the redaction happens in the OpenTelemetry SDK, in-process, before any span leaves the runtime.
 
 ## Manual evaluation
 
