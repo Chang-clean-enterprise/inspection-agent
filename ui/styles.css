@@ -39,10 +39,14 @@ body {
   line-height: 1.5;
   background-color: var(--color-bg);
   color: var(--color-text);
+  /* The page itself never scrolls; only .messages does. */
+  overflow: hidden;
 }
 
 #app {
-  min-height: 100vh;
+  /* Fixed, not min-height: a flex child only becomes a scroll container
+     within a bounded ancestor, never within one that can keep growing. */
+  height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -105,6 +109,10 @@ body {
 
 .chat {
   flex: 1;
+  /* Without this, a flex child never shrinks below its content's natural
+     height, so .messages below can never hit its own overflow boundary --
+     the whole chain just grows instead of the message panel scrolling. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
@@ -142,11 +150,14 @@ body {
 
 .messages {
   flex: 1;
+  /* Same reason as .chat's min-height: 0 above -- this is the box that must
+     actually constrain, so overflow-y: auto below has a real boundary to
+     scroll inside instead of growing the whole page. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   overflow-y: auto;
-  min-height: 20rem;
   padding: var(--spacing-sm);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);

@@ -557,6 +557,16 @@ function renderSignInBanner() {
   emailSpan.textContent = `Signed in as ${email} (${groups})`;
 }
 
+// Enter sends the message; Shift+Enter inserts a newline (the textarea's own
+// default behavior, left untouched). requestSubmit() re-enters the normal
+// submit path (handleSend) rather than duplicating it.
+function handlePromptKeydown(event) {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    document.getElementById("composer").requestSubmit();
+  }
+}
+
 async function handleSend(event) {
   event.preventDefault();
   if (state.sending) {
@@ -621,6 +631,7 @@ async function main() {
   document.getElementById("composer").addEventListener("submit", handleSend);
   document.getElementById("new-conversation-btn").addEventListener("click", startNewConversation);
   document.getElementById("signout-btn").addEventListener("click", () => signOut(config));
+  document.getElementById("prompt-input").addEventListener("keydown", handlePromptKeydown);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
