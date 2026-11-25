@@ -291,6 +291,20 @@ observability_parameters() {
   done
 }
 
+# ui_parameters [Key=Value ...]: build STACK_ARGS for the ui stack. Both of
+# ui.yaml's own parameters (HostedUiDomain, AppClientId) are SSM-typed and
+# resolve themselves, so STACK_ARGS is normally empty; only an explicit
+# override needs to be passed through.
+ui_parameters() {
+  local kv
+  RT_OVER=("$@" ${PARAM_OVERRIDES[@]+"${PARAM_OVERRIDES[@]}"})
+  STACK_ARGS=()
+
+  for kv in ${RT_OVER[@]+"${RT_OVER[@]}"}; do
+    STACK_ARGS+=("$kv")
+  done
+}
+
 # require_transaction_search: stop with the exact enable commands when CloudWatch Transaction
 # Search is not the account's X-Ray trace segment destination. No span is viewable in the
 # observability dashboard or in any trace view until this one-time, account-level setup is done.
@@ -349,6 +363,72 @@ apply_log_retention() {
   fi
 }
 
+# deploy_ui_assets <stack-name>: build the real runtime config, upload the site
+# and the config to the ui stack's bucket, then invalidate the CloudFront
+# distribution. Stops before any upload or invalidation if a required SSM
+# value or stack output comes back empty.
+deploy_ui_assets() {
+  local name="$1" runtime_arn encoded_arn invocation_url app_client_id hosted_ui_domain
+  local logout_url bucket dist_id
+
+  command -v python3 >/dev/null 2>&1 || fail "$CURRENT_STEP" "$name" "python3 not found on PATH"
+
+  runtime_arn=$(read_ssm "/inspection-agent/$ENV/runtime/runtime-arn") \
+    || fail "$CURRENT_STEP" "$name" "could not read the runtime ARN from SSM"
+  encoded_arn=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$runtime_arn")
+  invocation_url="https://bedrock-agentcore.$REGION.amazonaws.com/runtimes/$encoded_arn/invocations?qualifier=DEFAULT"
+
+  app_client_id=$(read_ssm "/inspection-agent/$ENV/auth/app-client-id") \
+    || fail "$CURRENT_STEP" "$name" "could not read the app client id from SSM"
+  hosted_ui_domain=$(read_ssm "/inspection-agent/$ENV/auth/hosted-ui-domain") \
+    || fail "$CURRENT_STEP" "$name" "could not read the hosted UI domain from SSM"
+
+  logout_url=$(aws cloudformation describe-stacks \
+    --region "$REGION" \
+    --stack-name "$name" \
+    --query "Stacks[0].Outputs[?OutputKey=='LogoutUrl'].OutputValue | [0]" \
+    --output text)
+  bucket=$(aws cloudformation describe-stacks \
+    --region "$REGION" \
+    --stack-name "$name" \
+    --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
+    --output text)
+  dist_id=$(aws cloudformation describe-stacks \
+    --region "$REGION" \
+    --stack-name "$name" \
+    --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue | [0]" \
+    --output text)
+
+  if [ -z "$runtime_arn" ] || [ -z "$app_client_id" ] || [ -z "$hosted_ui_domain" ] \
+    || [ -z "$logout_url" ] || [ "$logout_url" = "None" ] \
+    || [ -z "$bucket" ] || [ "$bucket" = "None" ] \
+    || [ -z "$dist_id" ] || [ "$dist_id" = "None" ]; then
+    fail "$CURRENT_STEP" "$name" "missing a required value (runtime ARN, app client id, hosted UI domain, LogoutUrl, BucketName, or DistributionId); not uploading"
+  fi
+
+  mkdir -p build/ui
+  python3 -c '
+import json, sys
+
+config = {
+    "invocationUrl": sys.argv[1],
+    "region": sys.argv[2],
+    "appClientId": sys.argv[3],
+    "hostedUiDomain": sys.argv[4],
+    "logoutUrl": sys.argv[5],
+    "sessionHeaderName": "X-Amzn-Bedrock-AgentCore-Runtime-Session-Id",
+}
+with open(sys.argv[6], "w") as f:
+    json.dump(config, f)
+' "$invocation_url" "$REGION" "$app_client_id" "$hosted_ui_domain" "$logout_url" "build/ui/config.json"
+
+  aws s3 sync ui/ "s3://$bucket/" --region "$REGION" --delete --exclude "README.md"
+  aws s3 cp build/ui/config.json "s3://$bucket/config.json" --region "$REGION"
+
+  aws cloudfront create-invalidation --distribution-id "$dist_id" --paths '/*' >/dev/null
+  echo "Uploaded UI assets to $bucket and invalidated distribution $dist_id."
+}
+
 # deploy_stack <component> [Key=Value ...]
 deploy_stack() {
   local c="$1"
@@ -374,6 +454,13 @@ deploy_stack() {
       # ModelId are SSM-typed and resolve themselves), so STACK_ARGS is normally empty, and bash 3.2
       # treats "${empty_array[@]}" as unbound under set -u. The pre-runtime and runtime branches
       # above never hit this because they always build at least one argument.
+      extra=(${STACK_ARGS[@]+"${STACK_ARGS[@]}"})
+      ;;
+    ui)
+      ui_parameters "$@"
+      # Guarded expansion: ui has no required overrides (HostedUiDomain and AppClientId
+      # are SSM-typed and resolve themselves), so STACK_ARGS is normally empty, and bash 3.2
+      # treats "${empty_array[@]}" as unbound under set -u. Same reasoning as observability above.
       extra=(${STACK_ARGS[@]+"${STACK_ARGS[@]}"})
       ;;
     *)
@@ -402,6 +489,10 @@ deploy_stack() {
 
   if [ "$c" = "observability" ]; then
     apply_log_retention "$name"
+  fi
+
+  if [ "$c" = "ui" ]; then
+    deploy_ui_assets "$name"
   fi
 }
 
