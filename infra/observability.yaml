@@ -1,0 +1,296 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: inspection-agent observability stack. Dashboard, decision metric filters, and Logs Insights saved queries over the runtime log group.
+
+Parameters:
+  Env:
+    Type: String
+    Description: Deployment environment name. Part of every stack name and SSM parameter path.
+    Default: demo
+    AllowedPattern: ^[a-z][a-z0-9]{0,9}$
+  # Log retention has no AWS::Logs::LogGroup resource here: AgentCore Runtime owns the runtime log
+  # group and creates it on first invoke. Three already exist in the account, each with a
+  # service-generated agent ID in its name, so a CloudFormation-owned log group would either fail
+  # with AlreadyExists or contend with the service for ownership. scripts/deploy.sh reads this
+  # parameter back from the RuntimeLogGroupName/LogRetentionDays outputs and applies it with
+  # `aws logs put-retention-policy` after this stack and the runtime log group both exist.
+  LogRetentionDays:
+    Type: Number
+    Description: Retention, in days, applied by scripts/deploy.sh to the runtime log group. One of the values CloudWatch Logs accepts for retention-in-days.
+    Default: 7
+    AllowedValues:
+      - 1
+      - 3
+      - 5
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+      - 120
+      - 150
+      - 180
+      - 365
+      - 400
+      - 545
+      - 731
+      - 1096
+      - 1827
+      - 2192
+      - 2557
+      - 2922
+      - 3288
+      - 3653
+  RuntimeId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the AgentCore runtime ID published by the runtime stack. Used to derive the runtime log group name.
+    Default: /inspection-agent/demo/runtime/runtime-id
+  RuntimeArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the AgentCore runtime ARN published by the runtime stack. Used as the Resource dimension on the AWS/Bedrock-AgentCore dashboard widgets.
+    Default: /inspection-agent/demo/runtime/runtime-arn
+  ModelId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the Bedrock inference profile ID published by the pre-runtime stack. Used as the ModelId dimension on the token-usage dashboard widget.
+    Default: /inspection-agent/demo/pre-runtime/model-id
+  MetricNamespace:
+    Type: String
+    Description: CloudWatch namespace that the decision metric filters publish into.
+    Default: inspection-agent
+    AllowedPattern: ^[A-Za-z0-9_.\-/#:]{1,255}$
+
+Resources:
+  # One metric per decision rather than one metric with a Decision dimension. CloudWatch rejects
+  # dimensions on a quoted-substring filter pattern ("The specified filter pattern does not support
+  # dimensions"), and a JSON selector, which would support them, needs the whole log event to be
+  # valid JSON. It is not: ADOT's logging auto-instrumentation prefixes every line (see task 5.3).
+  # Three metric names give the dashboard the same three series.
+  #
+  # audit.emit writes the line with separators=(",", ":"), so "decision":"forbidden" has no space
+  # and the substring is exact. Verified against real log data in task 5.3: these patterns match the
+  # stdout copy of the audit line in the runtime-logs streams and nothing else. They do not match
+  # the span records in the spans stream, nor the OTLP copy in otel-rt-logs, because both escape
+  # their quotes. One tool call therefore produces exactly one datapoint.
+  ToolCallsForbiddenMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Sub /aws/bedrock-agentcore/runtimes/${RuntimeId}-DEFAULT
+      FilterPattern: '"\"decision\":\"forbidden\""'
+      MetricTransformations:
+        - MetricNamespace: !Ref MetricNamespace
+          MetricName: ToolCallsForbidden
+          MetricValue: "1"
+          Unit: Count
+
+  ToolCallsRestrictedMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Sub /aws/bedrock-agentcore/runtimes/${RuntimeId}-DEFAULT
+      FilterPattern: '"\"decision\":\"restricted\""'
+      MetricTransformations:
+        - MetricNamespace: !Ref MetricNamespace
+          MetricName: ToolCallsRestricted
+          MetricValue: "1"
+          Unit: Count
+
+  ToolCallsAllowedMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Sub /aws/bedrock-agentcore/runtimes/${RuntimeId}-DEFAULT
+      FilterPattern: '"\"decision\":\"allowed\""'
+      MetricTransformations:
+        - MetricNamespace: !Ref MetricNamespace
+          MetricName: ToolCallsAllowed
+          MetricValue: "1"
+          Unit: Count
+
+  # Every query parses the audit fields out of @message with `parse` instead of relying on
+  # CloudWatch Logs Insights discovering them. Verified against real data in task 5.3: once ADOT
+  # auto-instrumentation is active it installs a logging formatter, so the audit line is no longer a
+  # bare JSON object but
+  #   2026-... INFO [inspection_core.audit] [audit.py:147] [trace_id=... span_id=...] - {"actor_id":...}
+  # and field discovery yields nothing. Parsing also keeps the pre-spec-11 bare-JSON lines readable,
+  # which still carry every field except session_id, actor_id, trace_id and span_id.
+  #
+  # The audit line is written twice into this log group: once as container stdout in the
+  # runtime-logs stream, and once as an OTLP log record in the otel-rt-logs stream. The OTLP envelope
+  # escapes its quotes (\"decision\":\"allowed\"), so a parse on the unescaped form matches the stdout
+  # copy only and no row is duplicated. The same escaping is why the metric filters above do not
+  # double count.
+  ActionsByUserQueryDefinition:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: !Sub inspection-agent/${Env}/actions-by-user
+      LogGroupNames:
+        - !Sub /aws/bedrock-agentcore/runtimes/${RuntimeId}-DEFAULT
+      QueryString: |-
+        fields @timestamp
+        | parse @message '"tool":"*"' as tool
+        | parse @message '"decision":"*"' as decision
+        | parse @message '"user_id":"*"' as user_id
+        | parse @message '"effective_lines":[*]' as effective_lines
+        | parse @message '"row_count":*,' as row_count
+        | parse @message '"report_ids":[*]' as report_ids
+        | parse @message '"session_id":"*"' as session_id
+        | parse @message '"trace_id":"*"' as trace_id
+        | parse @message '"parameters":{*}' as parameters
+        | filter ispresent(tool) and ispresent(decision)
+        | filter user_id = 'REPLACE_WITH_COGNITO_SUB'
+        | sort @timestamp desc
+        | limit 200
+
+  ForbiddenDecisionsQueryDefinition:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: !Sub inspection-agent/${Env}/forbidden-decisions
+      LogGroupNames:
+        - !Sub /aws/bedrock-agentcore/runtimes/${RuntimeId}-DEFAULT
+      QueryString: |-
+        fields @timestamp
+        | parse @message '"tool":"*"' as tool
+        | parse @message '"decision":"*"' as decision
+        | parse @message '"user_id":"*"' as user_id
+        | parse @message '"groups":[*]' as groups
+        | parse @message '"session_id":"*"' as session_id
+        | parse @message '"trace_id":"*"' as trace_id
+        | parse @message '"parameters":{*}' as parameters
+        | filter ispresent(tool) and ispresent(decision)
+        | filter decision = 'forbidden'
+        | sort @timestamp desc
+        | limit 200
+
+  LotAccessQueryDefinition:
+    Type: AWS::Logs::QueryDefinition
+    Properties:
+      Name: !Sub inspection-agent/${Env}/lot-access
+      LogGroupNames:
+        - !Sub /aws/bedrock-agentcore/runtimes/${RuntimeId}-DEFAULT
+      QueryString: |-
+        fields @timestamp
+        | parse @message '"tool":"*"' as tool
+        | parse @message '"decision":"*"' as decision
+        | parse @message '"user_id":"*"' as user_id
+        | parse @message '"groups":[*]' as groups
+        | parse @message '"effective_lines":[*]' as effective_lines
+        | parse @message '"row_count":*,' as row_count
+        | parse @message '"report_ids":[*]' as report_ids
+        | parse @message '"session_id":"*"' as session_id
+        | parse @message '"trace_id":"*"' as trace_id
+        | parse @message '"parameters":{*}' as parameters
+        | filter ispresent(tool) and ispresent(decision)
+        | filter parameters like 'REPLACE_LOT_ID' or report_ids like 'REPLACE_LOT_ID'
+        | sort @timestamp desc
+        | limit 200
+
+  Dashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub inspection-agent-${Env}
+      DashboardBody: !Sub |-
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0, "y": 0, "width": 8, "height": 6,
+              "properties": {
+                "title": "Invocations",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/Bedrock-AgentCore", "Invocations", "Name", "inspection_agent_${Env}::DEFAULT", "Operation", "InvokeAgentRuntime", "Resource", "${RuntimeArn}", {"stat": "Sum", "label": "Invocations"}]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8, "y": 0, "width": 8, "height": 6,
+              "properties": {
+                "title": "Errors",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/Bedrock-AgentCore", "SystemErrors", "Name", "inspection_agent_${Env}::DEFAULT", "Operation", "InvokeAgentRuntime", "Resource", "${RuntimeArn}", {"stat": "Sum", "label": "SystemErrors"}],
+                  ["AWS/Bedrock-AgentCore", "UserErrors", "Name", "inspection_agent_${Env}::DEFAULT", "Operation", "InvokeAgentRuntime", "Resource", "${RuntimeArn}", {"stat": "Sum", "label": "UserErrors"}],
+                  ["AWS/Bedrock-AgentCore", "Throttles", "Name", "inspection_agent_${Env}::DEFAULT", "Operation", "InvokeAgentRuntime", "Resource", "${RuntimeArn}", {"stat": "Sum", "label": "Throttles"}]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16, "y": 0, "width": 8, "height": 6,
+              "properties": {
+                "title": "Sessions",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/Bedrock-AgentCore", "Sessions", "Name", "inspection_agent_${Env}::DEFAULT", "Operation", "InvokeAgentRuntime", "Resource", "${RuntimeArn}", {"stat": "Sum", "label": "Sessions"}]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 6, "width": 12, "height": 6,
+              "properties": {
+                "title": "Latency p50 / p95",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/Bedrock-AgentCore", "Latency", "Name", "inspection_agent_${Env}::DEFAULT", "Operation", "InvokeAgentRuntime", "Resource", "${RuntimeArn}", {"stat": "p50", "label": "p50"}],
+                  ["AWS/Bedrock-AgentCore", "Latency", "Name", "inspection_agent_${Env}::DEFAULT", "Operation", "InvokeAgentRuntime", "Resource", "${RuntimeArn}", {"stat": "p95", "label": "p95"}]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12, "y": 6, "width": 12, "height": 6,
+              "properties": {
+                "title": "Tool calls by decision",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["${MetricNamespace}", "ToolCallsAllowed", {"stat": "Sum", "label": "allowed"}],
+                  ["${MetricNamespace}", "ToolCallsRestricted", {"stat": "Sum", "label": "restricted"}],
+                  ["${MetricNamespace}", "ToolCallsForbidden", {"stat": "Sum", "label": "forbidden"}]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0, "y": 12, "width": 18, "height": 6,
+              "properties": {
+                "title": "Token usage",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/Bedrock", "InputTokenCount", "ModelId", "${ModelId}", {"stat": "Sum", "label": "InputTokenCount"}],
+                  ["AWS/Bedrock", "OutputTokenCount", "ModelId", "${ModelId}", {"stat": "Sum", "label": "OutputTokenCount"}]
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "x": 18, "y": 12, "width": 6, "height": 6,
+              "properties": {
+                "markdown": "**Token usage caveat**\n\nThis metric is published by `AWS/Bedrock` per `ModelId` and is account-wide: it includes every invocation of this model in the account, not only this agent. For a per-request, per-agent figure use the `gen_ai.usage.input_tokens` and `gen_ai.usage.output_tokens` attributes on the `chat` span of each trace."
+              }
+            }
+          ]
+        }
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+Outputs:
+  DashboardName:
+    Description: Name of the CloudWatch dashboard.
+    Value: !Sub inspection-agent-${Env}
+  RuntimeLogGroupName:
+    Description: Name of the runtime log group, derived from the runtime ID. Not created by this stack; scripts/deploy.sh applies LogRetentionDays to it after it exists.
+    Value: !Sub /aws/bedrock-agentcore/runtimes/${RuntimeId}-DEFAULT
+  LogRetentionDays:
+    Description: Retention in days that scripts/deploy.sh applies to the runtime log group.
+    Value: !Ref LogRetentionDays
+  MetricNamespace:
+    Description: CloudWatch namespace that the decision metric filters publish into.
+    Value: !Ref MetricNamespace

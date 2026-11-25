@@ -16,7 +16,9 @@ import uuid
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from opentelemetry import trace
 
-from . import memory
+from inspection_core import audit
+
+from . import memory, tracing
 from .agent_factory import build_agent
 from .budget import RequestRecorder
 from .config import MAX_PROMPT_CHARS, AgentConfig, load_config
@@ -106,17 +108,18 @@ def _parse_payload(payload: object) -> tuple[str, str | None] | None:
     return prompt, session_id
 
 
-def _set_span_attributes(prompt_version: str, model_id: str) -> None:
+def _set_span_attributes(prompt_version: str, model_id: str, session_id: str) -> None:
     """Set the attributes known before the model call.
 
     Called before the agent runs, so a failed invocation still carries the
-    prompt version and the model ID in its trace.
+    prompt version, the model ID and the session ID in its trace.
     """
     try:
         span = trace.get_current_span()
         if span.is_recording():
             span.set_attribute("inspection.prompt_version", prompt_version)
             span.set_attribute("inspection.model_id", model_id)
+            span.set_attribute("inspection.session_id", session_id)
     except Exception:  # noqa: BLE001, S110
         pass
 
@@ -171,42 +174,55 @@ def handler(payload, context):
         except SessionOwnerMismatch:
             return ERROR_FORBIDDEN_SESSION
 
-        _set_span_attributes(prompt_version, config.model_id)
+        _set_span_attributes(prompt_version, config.model_id, session_id)
 
-        memory_id = config.memory_id
-        background = ""
-        record_count = 0
-
-        recorder = RequestRecorder()
-        with entry.lock:
-            if memory_id and not entry.background_loaded:
-                background, record_count = memory.read_background(
-                    memory_id, principal.user_id, prompt
-                )
-                entry.background_loaded = True
-
-            model_input = [{"text": background}, {"text": prompt}] if background else prompt
-            result = entry.agent(
-                model_input,
-                invocation_state={"principal": principal, "recorder": recorder},
-            )
-        answer = str(result).strip()
-        if not answer:
-            return ERROR_INTERNAL
-
-        write_status = "disabled"
-        if memory_id:
-            ok = memory.write_turn(memory_id, principal.user_id, session_id, prompt, answer)
-            write_status = "ok" if ok else "failed"
-            if not ok:
-                logger.warning("memory write failed")
-
-        _set_memory_span_attributes(
-            memory_enabled=bool(memory_id),
-            background_records=record_count,
-            write_status=write_status,
+        context_token = audit.set_request_context(
+            session_id=session_id, actor_id=principal.user_id
         )
-        return {"answer": answer, "actions": recorder.actions, "session_id": session_id}
+        try:
+            memory_id = config.memory_id
+            background = ""
+            record_count = 0
+
+            recorder = RequestRecorder()
+            with entry.lock:
+                if memory_id and not entry.background_loaded:
+                    background, record_count = memory.read_background(
+                        memory_id, principal.user_id, prompt
+                    )
+                    entry.background_loaded = True
+
+                model_input = (
+                    [{"text": background}, {"text": prompt}] if background else prompt
+                )
+                result = entry.agent(
+                    model_input,
+                    invocation_state={"principal": principal, "recorder": recorder},
+                )
+            answer = str(result).strip()
+            if not answer:
+                return ERROR_INTERNAL
+
+            write_status = "disabled"
+            if memory_id:
+                ok = memory.write_turn(memory_id, principal.user_id, session_id, prompt, answer)
+                write_status = "ok" if ok else "failed"
+                if not ok:
+                    logger.warning("memory write failed")
+
+            _set_memory_span_attributes(
+                memory_enabled=bool(memory_id),
+                background_records=record_count,
+                write_status=write_status,
+            )
+            return {
+                "answer": answer,
+                "actions": recorder.actions,
+                "session_id": session_id,
+                "trace_id": tracing.current_trace_id(),
+            }
+        finally:
+            audit.reset_request_context(context_token)
     except Exception as exc:  # noqa: BLE001
         logger.error("invocation failed class=%s", type(exc).__name__)
         return ERROR_INTERNAL

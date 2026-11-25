@@ -131,6 +131,35 @@ uv pip install \
   --target "$STAGE_DIR" \
   -r "$REQUIREMENTS"
 
+# uv writes console scripts into <stage>/bin with the shebang of the *local*
+# interpreter that ran the install, for example
+# #!/Users/someone/.virtualenvs/x/bin/python3. That path does not exist on the
+# AgentCore ARM64 Linux container. It only matters when a console script is the
+# runtime entry point, which is the case since spec 11 made it
+# [opentelemetry-instrument, main.py]: without this rewrite the runtime would
+# fail with a bad-interpreter error. Rewriting to /usr/bin/env python3 is
+# deterministic, so the package SHA-256 stays reproducible.
+CURRENT_STEP="normalize console script shebangs"
+python3 - "$STAGE_DIR" <<'PY'
+import os
+import sys
+
+bin_dir = os.path.join(sys.argv[1], "bin")
+if os.path.isdir(bin_dir):
+    for name in sorted(os.listdir(bin_dir)):
+        path = os.path.join(bin_dir, name)
+        if not os.path.isfile(path):
+            continue
+        with open(path, "rb") as handle:
+            first = handle.readline()
+            rest = handle.read()
+        if not first.startswith(b"#!") or b"python" not in first:
+            continue
+        with open(path, "wb") as handle:
+            handle.write(b"#!/usr/bin/env python3\n")
+            handle.write(rest)
+PY
+
 CURRENT_STEP="copy application packages"
 python3 - "$STAGE_DIR" <<'PY'
 import os
