@@ -274,6 +274,81 @@ runtime_parameters() {
   done
 }
 
+# observability_parameters [Key=Value ...]: build STACK_ARGS for the observability stack.
+# Calls require_transaction_search first, so both `make deploy-observability` and step 10 of
+# deploy_all stop before any stack change when Transaction Search is not enabled. The three
+# SSM-typed parameters (RuntimeId, RuntimeArn, ModelId) resolve themselves; only LogRetentionDays
+# (or another explicit override) needs to be passed through.
+observability_parameters() {
+  local kv
+  RT_OVER=("$@" ${PARAM_OVERRIDES[@]+"${PARAM_OVERRIDES[@]}"})
+  STACK_ARGS=()
+
+  require_transaction_search
+
+  for kv in ${RT_OVER[@]+"${RT_OVER[@]}"}; do
+    STACK_ARGS+=("$kv")
+  done
+}
+
+# require_transaction_search: stop with the exact enable commands when CloudWatch Transaction
+# Search is not the account's X-Ray trace segment destination. No span is viewable in the
+# observability dashboard or in any trace view until this one-time, account-level setup is done.
+require_transaction_search() {
+  local dest account_id policy msg
+  dest=$(aws xray get-trace-segment-destination --region "$REGION" --query Destination --output text 2>/dev/null || echo UNKNOWN)
+  if [[ "$dest" == "CloudWatchLogs" ]]; then
+    return 0
+  fi
+
+  account_id=$(aws sts get-caller-identity --region "$REGION" --query Account --output text 2>/dev/null || echo "<account-id>")
+  policy="{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"TransactionSearchXRayAccess\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"xray.amazonaws.com\"},\"Action\":\"logs:PutLogEvents\",\"Resource\":[\"arn:aws:logs:$REGION:$account_id:log-group:aws/spans:*\",\"arn:aws:logs:$REGION:$account_id:log-group:/aws/application-signals/data:*\"],\"Condition\":{\"ArnLike\":{\"aws:SourceArn\":\"arn:aws:xray:$REGION:$account_id:*\"},\"StringEquals\":{\"aws:SourceAccount\":\"$account_id\"}}}]}"
+
+  msg=$(cat <<EOF
+CloudWatch Transaction Search is not enabled in $REGION (trace segment destination is '$dest'). No span would be viewable even if the runtime exported one.
+
+This is a one-time, account-level action. Enable it with:
+
+  aws logs put-resource-policy --region $REGION --policy-name TransactionSearchXRayAccess --policy-document '$policy'
+  aws xray update-trace-segment-destination --region $REGION --destination CloudWatchLogs
+
+Or in the console: CloudWatch, Application Signals (APM), Transaction search, Enable Transaction Search, tick "ingest spans as structured logs", Save.
+
+Confirm with: aws xray get-trace-segment-destination --region $REGION
+Expect Destination: CloudWatchLogs, Status: ACTIVE. Provisioning takes 3 to 4 minutes to become ACTIVE.
+EOF
+)
+  die "$msg"
+}
+
+# apply_log_retention <stack-name>: read RuntimeLogGroupName and LogRetentionDays from the
+# observability stack outputs and apply the retention policy to the runtime log group. Warns
+# rather than fails when that log group does not exist yet: AgentCore creates it on first invoke.
+apply_log_retention() {
+  local name="$1" log_group days out
+  log_group=$(aws cloudformation describe-stacks \
+    --region "$REGION" \
+    --stack-name "$name" \
+    --query "Stacks[0].Outputs[?OutputKey=='RuntimeLogGroupName'].OutputValue | [0]" \
+    --output text)
+  days=$(aws cloudformation describe-stacks \
+    --region "$REGION" \
+    --stack-name "$name" \
+    --query "Stacks[0].Outputs[?OutputKey=='LogRetentionDays'].OutputValue | [0]" \
+    --output text)
+
+  if out=$(aws logs put-retention-policy \
+    --region "$REGION" \
+    --log-group-name "$log_group" \
+    --retention-in-days "$days" 2>&1); then
+    echo "Applied retention of $days day(s) to $log_group."
+  elif [[ "$out" == *"ResourceNotFoundException"* ]]; then
+    echo "Warning: runtime log group $log_group does not exist yet; skipping retention. AgentCore creates it on the first invoke." >&2
+  else
+    fail "$CURRENT_STEP" "$name" "could not apply log retention to $log_group: $out"
+  fi
+}
+
 # deploy_stack <component> [Key=Value ...]
 deploy_stack() {
   local c="$1"
@@ -292,6 +367,14 @@ deploy_stack() {
     runtime)
       runtime_parameters "$@"
       extra=("${STACK_ARGS[@]}")
+      ;;
+    observability)
+      observability_parameters "$@"
+      # Guarded expansion: observability has no required overrides (RuntimeId, RuntimeArn and
+      # ModelId are SSM-typed and resolve themselves), so STACK_ARGS is normally empty, and bash 3.2
+      # treats "${empty_array[@]}" as unbound under set -u. The pre-runtime and runtime branches
+      # above never hit this because they always build at least one argument.
+      extra=(${STACK_ARGS[@]+"${STACK_ARGS[@]}"})
       ;;
     *)
       extra=(${1+"$@"} ${PARAM_OVERRIDES[@]+"${PARAM_OVERRIDES[@]}"})
@@ -315,6 +398,10 @@ deploy_stack() {
   status=$(stack_status "$c")
   if [[ "$status" != "CREATE_COMPLETE" && "$status" != "UPDATE_COMPLETE" ]]; then
     fail "$CURRENT_STEP" "$name" "unexpected stack status $status"
+  fi
+
+  if [ "$c" = "observability" ]; then
+    apply_log_retention "$name"
   fi
 }
 
