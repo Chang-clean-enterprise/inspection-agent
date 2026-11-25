@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: inspection-agent ui stack. Private S3 site bucket behind a CloudFront distribution with Origin Access Control, security response headers, and SPA-style error mapping.
+
+Parameters:
+  Env:
+    Type: String
+    Description: Deployment environment name. Part of every stack name and SSM parameter path.
+    Default: demo
+    AllowedPattern: ^[a-z][a-z0-9]{0,9}$
+  HostedUiDomain:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: SSM parameter name that holds the Cognito hosted UI host name (no scheme) published by the auth stack. Used to build the Content-Security-Policy connect-src.
+    Default: /inspection-agent/demo/auth/hosted-ui-domain
+
+Resources:
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  OriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ui-${Env}-${AWS::StackName}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  ResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub ui-${Env}-${AWS::StackName}
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: same-origin
+            Override: true
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: !Sub "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://${HostedUiDomain} https://bedrock-agentcore.${AWS::Region}.amazonaws.com; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+            Override: true
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: SiteBucketOrigin
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: SiteBucketOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized
+          ResponseHeadersPolicyId: !Ref ResponseHeadersPolicy
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: "200"
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 404
+            ResponseCode: "200"
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+      Tags:
+        - Key: Project
+          Value: inspection-agent
+        - Key: Env
+          Value: !Ref Env
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${SiteBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution.Id}
+
+  CallbackUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/ui/callback-url
+      Type: String
+      Value: !Sub https://${Distribution.DomainName}/callback
+      Description: OAuth callback URL of the deployed ui stack, read by scripts/deploy.sh to update the auth stack's app client.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+  LogoutUrlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /inspection-agent/${Env}/ui/logout-url
+      Type: String
+      Value: !Sub https://${Distribution.DomainName}/
+      Description: Sign-out redirect URL of the deployed ui stack, read by scripts/deploy.sh to update the auth stack's app client.
+      Tags:
+        Project: inspection-agent
+        Env: !Ref Env
+
+Outputs:
+  BucketName:
+    Description: Name of the private S3 bucket holding the static site.
+    Value: !Ref SiteBucket
+  DistributionId:
+    Description: ID of the CloudFront distribution serving the site.
+    Value: !Ref Distribution
+  DistributionDomainName:
+    Description: Default *.cloudfront.net domain name of the distribution.
+    Value: !GetAtt Distribution.DomainName
+  CallbackUrl:
+    Description: OAuth callback URL. Same value as the SSM parameter ui/callback-url.
+    Value: !GetAtt CallbackUrlParameter.Value
+  LogoutUrl:
+    Description: Sign-out redirect URL. Same value as the SSM parameter ui/logout-url.
+    Value: !GetAtt LogoutUrlParameter.Value
