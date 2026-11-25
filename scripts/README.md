@@ -14,7 +14,7 @@ The 10 Operational_Scripts are:
 - smoke test
 - demo reset
 - demo warmup
-- memory inspect
+- memory inspect (`memory-inspect.sh`, also `make memory-inspect ARGS="..."`: lists one actor's short-term session events and long-term memory records; the actor is resolved from `--persona inspector-a|inspector-b|supervisor` or given with `--actor`; the memory ID comes from SSM `/inspection-agent/<env>/memory/memory-id`, published by the memory stack; read only, no create, update, or delete call)
 - teardown
 
 See [.kiro/steering/structure.md](../.kiro/steering/structure.md) for the repository layout and naming rules.
