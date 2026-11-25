@@ -207,6 +207,12 @@ Every tool call emits exactly one audit event, whatever the status. The event is
 | `report_ids` | IDs of the returned reports, at most 20. Empty for `characteristic_trend`. |
 | `duration_ms` | Elapsed time of the call in milliseconds |
 | `status` | The result status |
+| `session_id` | The session the call belongs to. Taken from the request context set by the entrypoint, never from a tool argument. Empty when no context is set. |
+| `actor_id` | The AgentCore Memory actor ID, which is the Cognito `sub`. Same source as `session_id`. Empty when no context is set. |
+| `trace_id` | The trace ID of the span active when the event was emitted, 32 hex digits. Empty when no span is recording. |
+| `span_id` | The span ID of that span, 16 hex digits. Empty when no span is recording. |
+
+The last four fields were added by the spec `11-observability`. They are what lets one audit line be joined to one span: see [observability.md](observability.md).
 
 On the span, `parameters` is a JSON string, list fields are lists of strings, and a `null` decision is the string `none`. Result data never enters the event, so notes text cannot reach it.
 
