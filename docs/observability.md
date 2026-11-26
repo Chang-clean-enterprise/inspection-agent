@@ -180,14 +180,20 @@ aws cognito-idp admin-get-user --region us-west-2 \
 
 ## 7. Auditor walkthrough
 
-> **"Who accessed lot LOT-20250604-01, when, and was it allowed?"**
+> **"Who accessed lot LOT-20261025-01, when, and was it allowed?"**
+
+(`LOT-20261025-01` is the current S3 line A lot — see `data/STORIES.md`. The seed's End_Date moved on
+2026-11-26; any lot ID from before that move no longer exists in the database.)
 
 You need nothing but the saved queries and the trace view.
 
 1. Open **CloudWatch → Logs Insights**. Load the saved query `inspection-agent/demo/lot-access`.
-2. Replace both occurrences of `REPLACE_LOT_ID` with `LOT-20250604-01`. Set the time range to cover
+2. Replace both occurrences of `REPLACE_LOT_ID` with `LOT-20261025-01`. Set the time range to cover
    the period in question. Run.
-3. Read the result. One row per access, newest first:
+3. Read the result. One row per access, newest first. **The table below is the result captured against
+   the prior seed round (lot `LOT-20250604-01`, before the 2026-11-26 reseed) and is kept as a worked
+   example of the shape, not a current, reproducible result — it has not been re-run against the new
+   lot ID:**
 
    | @timestamp | tool | decision | user_id | groups | effective_lines | row_count |
    |---|---|---|---|---|---|---|

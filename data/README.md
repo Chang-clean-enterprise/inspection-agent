@@ -22,7 +22,7 @@ Options:
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `--seed` | `42` | Integer seed for filler values. |
-| `--end-date` | `2025-06-30` | Last day of the 56-day window, `YYYY-MM-DD`. Story IDs depend on this date, not on the seed. |
+| `--end-date` | `2026-11-20` | Last day of the 56-day window, `YYYY-MM-DD`. Story IDs depend on this date, not on the seed. |
 | `--output-dir` | `data/seed/` | Directory the seed files are written to. |
 | `--include-injection-story` | off | Adds story S4, one report note with injection-style text. The committed files do not include it. |
 
