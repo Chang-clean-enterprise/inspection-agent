@@ -69,8 +69,8 @@ Payload: `reports`, a list of `{report_id, report_date, line, part_number, lot_i
 {"status":"ok",
  "meta":{"tool":"list_reports","schema_version":"1.0","scope":["B"],"truncated":false,
          "row_count":1,"total_matches":1,"limit_applied":50},
- "reports":[{"report_id":"IR-2025-0024","report_date":"2025-05-30","line":"B",
-   "part_number":"DEMO-BRACKET-4001","lot_id":"LOT-20250528-01","status":"submitted",
+ "reports":[{"report_id":"IR-2026-0024","report_date":"2026-10-20","line":"B",
+   "part_number":"DEMO-BRACKET-4001","lot_id":"LOT-20261018-01","status":"submitted",
    "disposition":null,"overall_result":"pass"}]}
 ```
 
@@ -83,8 +83,8 @@ Payload: `report`, an object with `report_id`, `report_date`, `line`, `part_numb
 ```json
 {"status":"ok",
  "meta":{"tool":"get_report","schema_version":"1.0","scope":["A"],"truncated":false,"row_count":1},
- "report":{"report_id":"IR-2025-0031","report_date":"2025-06-06","line":"A",
-   "part_number":"DEMO-SHAFT-3001","lot_id":"LOT-20250604-01","inspector_id":"insp-a-02",
+ "report":{"report_id":"IR-2026-0031","report_date":"2026-10-27","line":"A",
+   "part_number":"DEMO-SHAFT-3001","lot_id":"LOT-20261025-01","inspector_id":"insp-a-02",
    "status":"closed","disposition":"scrap","notes":"Journal oversize, lot segregated, scrap per MRB.",
    "overall_result":"fail",
    "measurements":[{"characteristic_id":"CHR-3001-01","characteristic_name":"journal_diameter",
@@ -99,10 +99,10 @@ Payload: `lot`, an object with `lot_id`, `part_number`, `line`, `produced_on`, `
 {"status":"ok",
  "meta":{"tool":"get_lot","schema_version":"1.0","scope":["B"],"truncated":false,
          "row_count":1,"total_reports":1},
- "lot":{"lot_id":"LOT-20250528-01","part_number":"DEMO-BRACKET-4001","line":"B",
-   "produced_on":"2025-05-28","quantity":120,
-   "reports":[{"report_id":"IR-2025-0024","report_date":"2025-05-30","line":"B",
-     "part_number":"DEMO-BRACKET-4001","lot_id":"LOT-20250528-01","inspector_id":"insp-b-01",
+ "lot":{"lot_id":"LOT-20261018-01","part_number":"DEMO-BRACKET-4001","line":"B",
+   "produced_on":"2026-10-18","quantity":120,
+   "reports":[{"report_id":"IR-2026-0024","report_date":"2026-10-20","line":"B",
+     "part_number":"DEMO-BRACKET-4001","lot_id":"LOT-20261018-01","inspector_id":"insp-b-01",
      "status":"submitted","disposition":null,
      "notes":"Hole looks off on piece 2. Fixture? Tool wear? Not sure. Will recheck.",
      "overall_result":"pass","measurements":[]}]}}
@@ -124,7 +124,7 @@ When no measurement matches the filters in the allowed scope, the result is `ok`
          "row_count":5,"total_matches":5},
  "characteristic":{"characteristic_id":"CHR-2001-01","name":"bore_diameter","unit":"mm",
                    "nominal":25.0,"lower_limit":24.98,"upper_limit":25.02},
- "lots":[{"lot_id":"LOT-20250512-01","produced_on":"2025-05-12","count":3,"mean":25.001,
+ "lots":[{"lot_id":"LOT-20261002-01","produced_on":"2026-10-02","count":3,"mean":25.001,
           "min":24.998,"max":25.004,"out_of_tolerance_count":0}],
  "trend":{"direction":"rising","consecutive_lots_toward_limit":4}}
 ```
@@ -187,7 +187,7 @@ When a user asks for a report or lot ID on a line they may not read, a tool can 
 
 This demo returns `forbidden`. Demo question 4 (ask for data from the other line and get a denial) exists to show the Line B inspector an explicit denial, so the audience sees that the boundary is enforced and not that the data is absent.
 
-The leak is limited and accepted. The result reveals only that the ID exists. Every denied record gets the same fields and the same reason, with no report count, line, part, value, or note. IDs here are guessable by design (`IR-2025-0031`) and the data is synthetic. A user with no allowed line gets `forbidden` for every ID, existing or not, so that case leaks nothing.
+The leak is limited and accepted. The result reveals only that the ID exists. Every denied record gets the same fields and the same reason, with no report count, line, part, value, or note. IDs here are guessable by design (`IR-2026-0031`) and the data is synthetic. A user with no allowed line gets `forbidden` for every ID, existing or not, so that case leaks nothing.
 
 A production system with sensitive IDs should return `not_found` for denied IDs and keep the real cause in the audit event. In the code that is one return statement in each lookup plus the reason text, because the audit event already records the true decision.
 
@@ -227,6 +227,6 @@ The verification table is in the design of the spec `07-inspection-tools-authori
 - Not found and invalid input (rows 22 to 26), and the row cap and `limit` clamp (rows 27 to 30).
 - SQL injection (rows 31 to 40): `' OR '1'='1`, `'; DROP TABLE inspection_reports; --`, and a value with `%` and `_` in each string parameter.
 - No write possible (rows 41 to 44), including a write attempt as `agent_ro` from the VPC session in [database.md](database.md).
-- Audit and trace (rows 45 to 50): one audit line and one set of `inspection.` span attributes per call, and no notes text in the line (call `get_report` on `IR-2025-0024` and read the log).
+- Audit and trace (rows 45 to 50): one audit line and one set of `inspection.` span attributes per call, and no notes text in the line (call `get_report` on `IR-2026-0024` and read the log).
 
 For each call, check that the audit log has exactly one line. Record the observed result and the date in the design table.

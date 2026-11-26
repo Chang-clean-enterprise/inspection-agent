@@ -20,7 +20,7 @@ from pathlib import Path
 
 GENERATOR_VERSION = "1.0.0"
 DEFAULT_SEED = 42
-DEFAULT_END_DATE = date(2025, 6, 30)
+DEFAULT_END_DATE = date(2026, 11, 20)
 WINDOW_DAYS = 56
 DEFAULT_OUTPUT_DIR = "data/seed/"
 
