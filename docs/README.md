@@ -11,6 +11,7 @@ Project documentation.
 - [runtime.md](runtime.md): AgentCore runtime stacks (`pre-runtime` and `runtime`), deploy order, code update procedure, session behavior, and manual verification results
 - [memory.md](memory.md): AgentCore Memory stack, actor and session keys, namespaces, what is written as an event, the extraction delay and the demo flow it implies, `memory-inspect`, and known gaps
 - [observability.md](observability.md): how to find and read the trace for a request, what each span and audit attribute means, the three saved queries, the auditor walkthrough, the dashboard, and the five-minute pre-demo checklist
+- [omni.md](omni.md): whether CloudWatch Omni adds value over the trace view and dashboard, the setup walkthrough, the three demo queries reproduced, and the decision record
 - [ui.md](ui.md): the static chat UI, how sign-in and the CSP work, the action log's scope, persona switching, and deploy/update
 - [kiro-workflow.md](kiro-workflow.md): how GitHub issues, specs, commits, and pull requests map to each other
 
